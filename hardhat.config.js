@@ -23,6 +23,11 @@ const TRON_DEVELOPMENT_KEY = vars.get("TRON_DEVELOPMENT_KEY");
 const TRE_LOCAL_TRON_DEVELOPMENT_KEY_1 = vars.get("TRE_LOCAL_TRON_DEVELOPMENT_KEY_1");
 const TRE_LOCAL_TRON_DEVELOPMENT_KEY_2 = vars.get("TRE_LOCAL_TRON_DEVELOPMENT_KEY_2");
 
+// API Keys and RPC URLs
+const ETHERSCAN_API_KEY = vars.get("ETHERSCAN_API_KEY", "");
+const QUICKNODE_BSC_URL = vars.get("QUICKNODE_BSC_URL", "https://bsc-dataseed.binance.org");
+const QUICKNODE_BSC_TESTNET_URL = vars.get("QUICKNODE_BSC_TESTNET_URL", "https://data-seed-prebsc-1-s1.binance.org:8545");
+
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   tronSolc: {
@@ -53,14 +58,7 @@ module.exports = {
     enabled: false, // 启用Sourcify
   },
   etherscan: {
-    apiKey: "Q8Y9HXR27EZFYW1RKWEV35TNWW5PUEIESM",
-    // apiKey: {
-    //   polygonAmoy: "QSTE529VFJEJ8SU3B7CF6XJGAU31YZNIN4",
-    //   polygon: "QSTE529VFJEJ8SU3B7CF6XJGAU31YZNIN4",
-    //   bsc: "YTZQV92453PJRSWJ67NUUHV7AY5ZUJPNIA",
-    //   bscTestnet: "YTZQV92453PJRSWJ67NUUHV7AY5ZUJPNIA",
-    //   mailchatd: "empty"
-    // },
+    apiKey: ETHERSCAN_API_KEY,
     customChains: [
       {
         network: "mailchatd",
@@ -96,14 +94,14 @@ module.exports = {
       gasPrice: "auto"
     },
     bsc: {
-      url: "https://hardworking-falling-isle.bsc.quiknode.pro/adcbb74157252b92e28ff4beed472bdbf2156bcb",
+      url: QUICKNODE_BSC_URL,
       chainId: 56,
       accounts: [PRODUCT_KEY],
       gas: 30000000,
       gasPrice: "auto"
     },
     bscTestnet: {
-      url: "https://hardworking-falling-isle.bsc-testnet.quiknode.pro/adcbb74157252b92e28ff4beed472bdbf2156bcb",
+      url: QUICKNODE_BSC_TESTNET_URL,
       chainId: 97,
       accounts: [DEVELOPMENT_KEY],
       gas: "auto",
