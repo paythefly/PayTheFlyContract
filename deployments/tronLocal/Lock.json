@@ -1,0 +1,12 @@
+{
+  "contractName": "Lock",
+  "address": "TKe2zq5ZK7PDJjj9qmudtHUs5Pcz1dTLWk",
+  "hexAddress": "416a1100f17d1d3a7f87a2195719d86fc5700920b5",
+  "network": "tronLocal",
+  "networkType": "tvm",
+  "deployer": "TQmQUk71h6RmKTRS8YV6AJsc77ovQAWNaP",
+  "deployedAt": "2026-01-15T07:54:19.120Z",
+  "constructorArgs": [
+    1768467255
+  ]
+}
