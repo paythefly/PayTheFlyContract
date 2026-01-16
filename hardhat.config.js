@@ -25,8 +25,10 @@ const TRE_LOCAL_TRON_DEVELOPMENT_KEY_2 = vars.get("TRE_LOCAL_TRON_DEVELOPMENT_KE
 
 // API Keys and RPC URLs
 const ETHERSCAN_API_KEY = vars.get("ETHERSCAN_API_KEY", "");
+const BSCSCAN_API_KEY = vars.get("BSCSCAN_API_KEY", "");
 const QUICKNODE_BSC_URL = vars.get("QUICKNODE_BSC_URL", "https://bsc-dataseed.binance.org");
 const QUICKNODE_BSC_TESTNET_URL = vars.get("QUICKNODE_BSC_TESTNET_URL", "https://data-seed-prebsc-1-s1.binance.org:8545");
+const SEPOLIA_RPC_URL = vars.get("SEPOLIA_RPC_URL", "https://ethereum-sepolia.publicnode.com");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -58,7 +60,13 @@ module.exports = {
     enabled: false, // 启用Sourcify
   },
   etherscan: {
-    apiKey: ETHERSCAN_API_KEY,
+    apiKey: {
+      mainnet: ETHERSCAN_API_KEY,
+      sepolia: ETHERSCAN_API_KEY,
+      bsc: BSCSCAN_API_KEY,
+      bscTestnet: BSCSCAN_API_KEY,
+      mailchatd: ETHERSCAN_API_KEY
+    },
     customChains: [
       {
         network: "mailchatd",
@@ -107,6 +115,13 @@ module.exports = {
       gas: "auto",
       gasPrice: "auto"
     },
+    sepolia: {
+      url: SEPOLIA_RPC_URL,
+      chainId: 11155111,
+      accounts: [DEVELOPMENT_KEY],
+      gas: "auto",
+      gasPrice: "auto"
+    },
     // Tron local TRE node (docker tronbox/tre)
     tronLocal: {
       url: "http://127.0.0.1:9090/jsonrpc",  // TRE JSON-RPC endpoint
@@ -117,6 +132,13 @@ module.exports = {
       ],
       tpiUrl: "http://127.0.0.1:9090", // TRE Tron API endpoint
       tron: true  // Mark this as a Tron network
+    },
+    // Tron Shasta Testnet
+    tronShasta: {
+      url: "https://api.shasta.trongrid.io",
+      accounts: [TRON_DEVELOPMENT_KEY],
+      tpiUrl: "https://api.shasta.trongrid.io",
+      tron: true
     },
     // Tron Nile Testnet
     tronNile: {
