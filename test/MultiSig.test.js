@@ -478,16 +478,9 @@ describe("MultiSig", function () {
 
     describe("Fund Operations", function () {
         beforeEach(async function () {
-            // Fund the project with ETH payment
+            // Fund the project with ETH via depositToWithdrawalPool
+            // Direct ETH transfer is not allowed
             const amount = ethers.parseEther("10");
-            await admin1.sendTransaction({
-                to: await project.getAddress(),
-                value: amount
-            });
-
-            // Manually add to payment balance (simulate payment)
-            // Note: In real scenario, this would come from actual payments
-            // For testing, we'll use depositToWithdrawalPool which works
             await project.connect(admin1).depositToWithdrawalPool(ethers.ZeroAddress, 0, { value: amount });
         });
 

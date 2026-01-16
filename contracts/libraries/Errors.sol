@@ -14,6 +14,7 @@ library Errors {
     error InvalidFeeVault();
     error FeeRateTooHigh();
     error InvalidSignerAddress();
+    error InvalidImplementation();
 
     // ============ Project Errors ============
     error NotAdmin();
@@ -34,6 +35,7 @@ library Errors {
     error ThresholdTooHigh();
     error NameTooLong();
     error TransferFailed();
+    error DirectTransferNotAllowed();
 
     // ============ Proposal Errors ============
     error ProposalNotFound();

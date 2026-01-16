@@ -55,6 +55,9 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
     /// @notice Total number of proposals created
     uint256 private _proposalCount;
 
+    /// @notice Count of pending proposals (not executed, not cancelled)
+    uint256 private _pendingProposalCount;
+
     /// @notice Mapping of proposal ID to proposal data
     mapping(uint256 => DataTypes.Proposal) private _proposals;
 
@@ -142,7 +145,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
             paused: _paused,
             admins: _admins,
             threshold: _threshold,
-            activeProposalCount: _getActiveProposalCount()
+            activeProposalCount: _pendingProposalCount
         });
     }
 
@@ -396,6 +399,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         if (deadline > block.timestamp + DataTypes.MAX_PROPOSAL_DURATION) revert InvalidProposalDuration();
 
         proposalId = _proposalCount++;
+        _pendingProposalCount++;
 
         _proposals[proposalId] = DataTypes.Proposal({
             id: proposalId,
@@ -455,6 +459,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         if (p.proposer != msg.sender) revert NotProposer();
 
         p.cancelled = true;
+        _pendingProposalCount--;
 
         emit ProposalCancelled(proposalId);
     }
@@ -470,6 +475,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         if (p.confirmCount < _threshold) revert ThresholdNotReached();
 
         p.executed = true;
+        _pendingProposalCount--;
 
         _executeOperation(proposalId, p.opType, p.params);
 
@@ -495,14 +501,8 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         return (amount * rate) / DataTypes.BASIS_POINTS;
     }
 
-    function _getActiveProposalCount() internal view returns (uint256 count) {
-        for (uint256 i = 0; i < _proposalCount; i++) {
-            DataTypes.Proposal storage p = _proposals[i];
-            if (!p.executed && !p.cancelled && block.timestamp <= p.deadline) {
-                count++;
-            }
-        }
-    }
+    // Note: _getActiveProposalCount() removed to fix DoS vulnerability (HIGH-001)
+    // Now using _pendingProposalCount counter for O(1) access
 
     function _getConfirmedBy(uint256 proposalId) internal view returns (address[] memory) {
         DataTypes.Proposal storage p = _proposals[proposalId];
@@ -669,5 +669,19 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
 
     // ============ Receive ETH ============
 
-    receive() external payable {}
+    /**
+     * @notice Reject direct ETH transfers to prevent unaccounted funds
+     * @dev Use pay() for payments or depositToWithdrawalPool() for admin deposits
+     */
+    receive() external payable {
+        revert Errors.DirectTransferNotAllowed();
+    }
+
+    /**
+     * @notice Reject any calls with data to prevent unaccounted funds
+     * @dev Use pay() for payments or depositToWithdrawalPool() for admin deposits
+     */
+    fallback() external payable {
+        revert Errors.DirectTransferNotAllowed();
+    }
 }

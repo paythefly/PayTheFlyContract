@@ -158,6 +158,9 @@ contract PayTheFlyProFactory is IPayTheFlyProFactory, UUPSUpgradeable, Ownable2S
 
     /// @inheritdoc IPayTheFlyProFactory
     function upgradeBeacon(address newImplementation) external override onlyOwner {
+        // Validate new implementation is a contract
+        if (newImplementation.code.length == 0) revert Errors.InvalidImplementation();
+
         address oldImpl = _beacon.implementation();
         _beacon.upgradeTo(newImplementation);
 
