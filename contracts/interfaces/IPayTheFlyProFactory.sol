@@ -27,6 +27,9 @@ interface IPayTheFlyProFactory {
     /// @notice Emitted when beacon implementation is upgraded
     event BeaconUpgraded(address indexed oldImpl, address indexed newImpl);
 
+    /// @notice Emitted when ownership transfer is cancelled
+    event OwnershipTransferCancelled(address indexed owner);
+
     // ============ Errors ============
 
     error ProjectIdEmpty();

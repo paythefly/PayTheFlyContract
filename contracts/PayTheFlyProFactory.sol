@@ -182,6 +182,7 @@ contract PayTheFlyProFactory is IPayTheFlyProFactory, UUPSUpgradeable, Ownable2S
     /// @inheritdoc IPayTheFlyProFactory
     function cancelOwnershipTransfer() external override onlyOwner {
         _transferOwnership(owner());
+        emit OwnershipTransferCancelled(owner());
     }
 
     // ============ UUPS Upgrade ============

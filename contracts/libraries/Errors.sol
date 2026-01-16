@@ -33,6 +33,7 @@ library Errors {
     error AdminAlreadyExists();
     error AdminNotFound();
     error ThresholdTooHigh();
+    error NameEmpty();
     error NameTooLong();
     error TransferFailed();
     error DirectTransferNotAllowed();

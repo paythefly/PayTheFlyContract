@@ -362,6 +362,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
 
     /// @inheritdoc IPayTheFlyPro
     function setName(string calldata newName) external override onlyAdmin {
+        if (bytes(newName).length == 0) revert Errors.NameEmpty();
         if (bytes(newName).length > DataTypes.MAX_NAME_LENGTH) revert NameTooLong();
 
         string memory oldName = _name;
