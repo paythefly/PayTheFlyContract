@@ -114,7 +114,11 @@ describe("Payment", function () {
             const feeVaultBalanceBefore = await ethers.provider.getBalance(feeVault.address);
 
             await expect(
-                project.connect(payer).pay(ethers.ZeroAddress, amount, serialNo, deadline, signature, { value: amount })
+                project.connect(payer).pay(
+                    { token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                    signature,
+                    { value: amount }
+                )
             ).to.emit(project, "Transaction"); // TxType.PAYMENT = 1
 
             // Check fee was transferred
@@ -144,7 +148,11 @@ describe("Payment", function () {
             const signature = await signPayment(admin, await project.getAddress(), payment);
 
             await expect(
-                project.connect(payer).pay(ethers.ZeroAddress, amount, serialNo, deadline, signature, { value: amount })
+                project.connect(payer).pay(
+                    { token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                    signature,
+                    { value: amount }
+                )
             ).to.be.revertedWithCustomError(project, "InvalidSignature");
         });
 
@@ -164,7 +172,11 @@ describe("Payment", function () {
             const signature = await signPayment(projectSigner, await project.getAddress(), payment);
 
             await expect(
-                project.connect(payer).pay(ethers.ZeroAddress, amount, serialNo, deadline, signature, { value: amount })
+                project.connect(payer).pay(
+                    { token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                    signature,
+                    { value: amount }
+                )
             ).to.be.revertedWithCustomError(project, "ExpiredDeadline");
         });
 
@@ -184,11 +196,19 @@ describe("Payment", function () {
             const signature = await signPayment(projectSigner, await project.getAddress(), payment);
 
             // First payment succeeds
-            await project.connect(payer).pay(ethers.ZeroAddress, amount, serialNo, deadline, signature, { value: amount });
+            await project.connect(payer).pay(
+                { token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                signature,
+                { value: amount }
+            );
 
             // Second payment with same serial number fails
             await expect(
-                project.connect(payer).pay(ethers.ZeroAddress, amount, serialNo, deadline, signature, { value: amount })
+                project.connect(payer).pay(
+                    { token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                    signature,
+                    { value: amount }
+                )
             ).to.be.revertedWithCustomError(project, "SerialNoUsed");
         });
 
@@ -207,7 +227,11 @@ describe("Payment", function () {
             const signature = await signPayment(projectSigner, await project.getAddress(), payment);
 
             await expect(
-                project.connect(payer).pay(ethers.ZeroAddress, 0, serialNo, deadline, signature, { value: 0 })
+                project.connect(payer).pay(
+                    { token: ethers.ZeroAddress, amount: 0, serialNo: serialNo, deadline: deadline },
+                    signature,
+                    { value: 0 }
+                )
             ).to.be.revertedWithCustomError(project, "InvalidAmount");
         });
 
@@ -228,7 +252,11 @@ describe("Payment", function () {
 
             const Errors = await ethers.getContractFactory("contracts/libraries/Errors.sol:Errors");
             await expect(
-                project.connect(payer).pay(ethers.ZeroAddress, amount, serialNo, deadline, signature, { value: amount })
+                project.connect(payer).pay(
+                    { token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                    signature,
+                    { value: amount }
+                )
             ).to.be.revertedWithCustomError(Errors, "SerialNoEmpty");
         });
     });
@@ -256,10 +284,7 @@ describe("Payment", function () {
 
             await expect(
                 project.connect(payer).pay(
-                    await mockToken.getAddress(),
-                    amount,
-                    serialNo,
-                    deadline,
+                    { token: await mockToken.getAddress(), amount: amount, serialNo: serialNo, deadline: deadline },
                     signature
                 )
             ).to.emit(project, "Transaction"); // TxType.PAYMENT = 1
@@ -294,10 +319,7 @@ describe("Payment", function () {
 
             await expect(
                 project.connect(payer).pay(
-                    await mockToken.getAddress(),
-                    amount,
-                    serialNo,
-                    deadline,
+                    { token: await mockToken.getAddress(), amount: amount, serialNo: serialNo, deadline: deadline },
                     signature
                 )
             ).to.be.revertedWithCustomError(project, "InvalidSignature");
@@ -332,7 +354,10 @@ describe("Payment", function () {
 
             const payerBalanceBefore = await ethers.provider.getBalance(payer.address);
 
-            const tx = await project.connect(payer).withdraw(ethers.ZeroAddress, amount, serialNo, deadline, signature);
+            const tx = await project.connect(payer).withdraw(
+                { user: payer.address, token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                signature
+            );
             const receipt = await tx.wait();
             const gasUsed = receipt.gasUsed * receipt.gasPrice;
 
@@ -360,7 +385,10 @@ describe("Payment", function () {
             const signature = await signWithdrawal(projectSigner, await project.getAddress(), withdrawal);
 
             await expect(
-                project.connect(payer).withdraw(ethers.ZeroAddress, amount, serialNo, deadline, signature)
+                project.connect(payer).withdraw(
+                    { user: payer.address, token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                    signature
+                )
             ).to.be.revertedWithCustomError(project, "InsufficientBalance");
         });
 
@@ -380,10 +408,13 @@ describe("Payment", function () {
 
             const signature = await signWithdrawal(projectSigner, await project.getAddress(), withdrawal);
 
-            // Payer tries to use signature meant for admin
+            // Payer tries to use struct with admin as user (but msg.sender is payer) - InvalidAddress
             await expect(
-                project.connect(payer).withdraw(ethers.ZeroAddress, amount, serialNo, deadline, signature)
-            ).to.be.revertedWithCustomError(project, "InvalidSignature");
+                project.connect(payer).withdraw(
+                    { user: admin.address, token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                    signature
+                )
+            ).to.be.revertedWithCustomError(project, "InvalidAddress");
         });
     });
 
@@ -418,10 +449,7 @@ describe("Payment", function () {
 
             await expect(
                 project.connect(payer).withdraw(
-                    await mockToken.getAddress(),
-                    amount,
-                    serialNo,
-                    deadline,
+                    { user: payer.address, token: await mockToken.getAddress(), amount: amount, serialNo: serialNo, deadline: deadline },
                     signature
                 )
             ).to.emit(project, "Transaction"); // TxType.WITHDRAWAL = 2
@@ -472,7 +500,11 @@ describe("Payment", function () {
             const signature = await signPayment(projectSigner, await project.getAddress(), payment);
 
             await expect(
-                project.connect(payer).pay(ethers.ZeroAddress, amount, serialNo, deadline, signature, { value: amount })
+                project.connect(payer).pay(
+                    { token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                    signature,
+                    { value: amount }
+                )
             ).to.be.revertedWithCustomError(project, "ProjectPausedError");
         });
 
@@ -492,7 +524,10 @@ describe("Payment", function () {
             const signature = await signWithdrawal(projectSigner, await project.getAddress(), withdrawal);
 
             await expect(
-                project.connect(payer).withdraw(ethers.ZeroAddress, amount, serialNo, deadline, signature)
+                project.connect(payer).withdraw(
+                    { user: payer.address, token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                    signature
+                )
             ).to.be.revertedWithCustomError(project, "ProjectPausedError");
         });
     });
@@ -513,7 +548,11 @@ describe("Payment", function () {
             };
 
             const signature = await signPayment(projectSigner, await project.getAddress(), payment);
-            await project.connect(payer).pay(ethers.ZeroAddress, amount, serialNo, deadline, signature, { value: amount });
+            await project.connect(payer).pay(
+                { token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+                signature,
+                { value: amount }
+            );
 
             // Query batch balances
             const balances = await project.getBalancesBatch([

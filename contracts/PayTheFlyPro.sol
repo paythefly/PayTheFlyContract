@@ -258,109 +258,99 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
 
     /// @inheritdoc IPayTheFlyPro
     function pay(
-        address token,
-        uint256 amount,
-        string calldata serialNo,
-        uint256 deadline,
+        PaymentRequest calldata request,
         bytes calldata signature
     ) external payable override whenNotPaused {
-        _validateSerialNo(serialNo);
-        if (block.timestamp > deadline) revert ExpiredDeadline();
+        _validateSerialNo(request.serialNo);
+        if (block.timestamp > request.deadline) revert ExpiredDeadline();
+        if (request.amount == 0) revert InvalidAmount();
 
-        uint256 paymentAmount;
-        if (token == address(0)) {
-            // ETH payment
-            if (msg.value == 0) revert InvalidAmount();
-            paymentAmount = msg.value;
-        } else {
-            // ERC20 payment
-            if (msg.value != 0) revert InvalidAmount(); // No ETH for token payment
-            if (amount == 0) revert InvalidAmount();
-            paymentAmount = amount;
-        }
-
-        // Verify signature
+        // Verify signature first (before any transfers)
         bytes32 structHash = keccak256(abi.encode(
             TypeHashes.PAYMENT_TYPEHASH,
             msg.sender,
-            token,
-            paymentAmount,
-            keccak256(bytes(serialNo)),
-            deadline
+            request.token,
+            request.amount,
+            keccak256(bytes(request.serialNo)),
+            request.deadline
         ));
         _verifySignature(structHash, signature);
 
         // Mark serial number as used
-        _usedPaymentSerialNos[serialNo] = true;
+        _usedPaymentSerialNos[request.serialNo] = true;
+
+        // Process payment
+        if (request.token == address(0)) {
+            // ETH payment - must match the specified amount exactly
+            if (msg.value != request.amount) revert InvalidAmount();
+        } else {
+            // ERC20 payment - no ETH should be sent
+            if (msg.value != 0) revert InvalidAmount();
+            // Transfer tokens from sender
+            SafeERC20Universal.safeTransferFrom(IERC20(request.token), msg.sender, address(this), request.amount);
+        }
 
         // Calculate fee
-        uint256 feeAmount = _calculateFee(paymentAmount);
-        uint256 netAmount = paymentAmount - feeAmount;
+        uint256 feeAmount = _calculateFee(request.amount);
+        uint256 netAmount = request.amount - feeAmount;
 
-        if (token == address(0)) {
-            // ETH: Transfer fee to vault
-            if (feeAmount > 0) {
-                address vault = IPayTheFlyProFactory(_factory).feeVault();
+        // Transfer fee to vault
+        if (feeAmount > 0) {
+            address vault = IPayTheFlyProFactory(_factory).feeVault();
+            if (request.token == address(0)) {
                 (bool success, ) = vault.call{value: feeAmount}("");
                 if (!success) revert Errors.TransferFailed();
-            }
-        } else {
-            // ERC20: Transfer tokens from sender first
-            SafeERC20Universal.safeTransferFrom(IERC20(token), msg.sender, address(this), paymentAmount);
-            // Transfer fee to vault
-            if (feeAmount > 0) {
-                address vault = IPayTheFlyProFactory(_factory).feeVault();
-                SafeERC20Universal.safeTransfer(IERC20(token), vault, feeAmount);
+            } else {
+                SafeERC20Universal.safeTransfer(IERC20(request.token), vault, feeAmount);
             }
         }
 
         // Add to payment balance
-        _paymentBalances[token] += netAmount;
+        _paymentBalances[request.token] += netAmount;
 
-        emit Transaction(_projectId, token, msg.sender, netAmount, feeAmount, serialNo, TxType.PAYMENT);
+        emit Transaction(_projectId, request.token, msg.sender, netAmount, feeAmount, request.serialNo, TxType.PAYMENT);
     }
 
     /// @inheritdoc IPayTheFlyPro
     function withdraw(
-        address token,
-        uint256 amount,
-        string calldata serialNo,
-        uint256 deadline,
+        WithdrawalRequest calldata request,
         bytes calldata signature
     ) external override whenNotPaused {
-        _validateSerialNo(serialNo);
-        if (block.timestamp > deadline) revert ExpiredDeadline();
-        if (amount == 0) revert InvalidAmount();
+        // User must match msg.sender to prevent MEV front-running
+        if (request.user != msg.sender) revert InvalidAddress();
+        _validateSerialNo(request.serialNo);
+        if (block.timestamp > request.deadline) revert ExpiredDeadline();
+        if (request.amount == 0) revert InvalidAmount();
 
         // Verify signature
         bytes32 structHash = keccak256(abi.encode(
             TypeHashes.WITHDRAWAL_TYPEHASH,
-            msg.sender,
-            token,
-            amount,
-            keccak256(bytes(serialNo)),
-            deadline
+            request.user,
+            request.token,
+            request.amount,
+            keccak256(bytes(request.serialNo)),
+            request.deadline
         ));
         _verifySignature(structHash, signature);
 
         // Mark serial number as used
-        _usedWithdrawalSerialNos[serialNo] = true;
+        _usedWithdrawalSerialNos[request.serialNo] = true;
 
         // Check and update balance
-        if (_withdrawalBalances[token] < amount) revert InsufficientBalance();
-        _withdrawalBalances[token] -= amount;
+        if (_withdrawalBalances[request.token] < request.amount) revert InsufficientBalance();
+        _withdrawalBalances[request.token] -= request.amount;
 
         // Transfer funds
-        if (token == address(0)) {
+        if (request.token == address(0)) {
             // ETH transfer
-            (bool success, ) = msg.sender.call{value: amount}("");
+            (bool success, ) = msg.sender.call{value: request.amount}("");
             if (!success) revert Errors.TransferFailed();
         } else {
             // ERC20 transfer
-            SafeERC20Universal.safeTransfer(IERC20(token), msg.sender, amount);
+            SafeERC20Universal.safeTransfer(IERC20(request.token), msg.sender, request.amount);
         }
 
-        emit Transaction(_projectId, token, msg.sender, amount, 0, serialNo, TxType.WITHDRAWAL);
+        emit Transaction(_projectId, request.token, msg.sender, request.amount, 0, request.serialNo, TxType.WITHDRAWAL);
     }
 
     // ============ Admin Functions (No Multi-Sig) ============

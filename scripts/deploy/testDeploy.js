@@ -104,7 +104,11 @@ async function main() {
     const signature = await signer.signTypedData(domain, types, value);
 
     const feeVaultBalanceBefore = await ethers.provider.getBalance(feeVault.address);
-    await project.connect(user).pay(ethers.ZeroAddress, amount, serialNo, deadline, signature, { value: amount });
+    await project.connect(user).pay(
+        { token: ethers.ZeroAddress, amount: amount, serialNo: serialNo, deadline: deadline },
+        signature,
+        { value: amount }
+    );
     const feeVaultBalanceAfter = await ethers.provider.getBalance(feeVault.address);
 
     const balance = await project.getBalance(ethers.ZeroAddress);

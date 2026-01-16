@@ -65,6 +65,21 @@ interface IPayTheFlyPro {
         address[] confirmedBy;
     }
 
+    struct PaymentRequest {
+        address token;          // Token address (address(0) for ETH)
+        uint256 amount;         // Amount to pay
+        string serialNo;        // Unique payment serial number
+        uint256 deadline;       // Deadline timestamp for the payment
+    }
+
+    struct WithdrawalRequest {
+        address user;           // Target user address (must match msg.sender)
+        address token;          // Token address (address(0) for ETH)
+        uint256 amount;         // Amount to withdraw
+        string serialNo;        // Unique withdrawal serial number
+        uint256 deadline;       // Deadline timestamp for the withdrawal
+    }
+
     // ============ Events ============
 
     /**
@@ -229,33 +244,21 @@ interface IPayTheFlyPro {
 
     /**
      * @notice Pay with signature verification (ETH or ERC20)
-     * @param token Token address (address(0) for ETH)
-     * @param amount Amount to pay (ignored for ETH, uses msg.value)
-     * @param serialNo Unique serial number
-     * @param deadline Signature expiration timestamp
+     * @param request Payment request details
      * @param signature Signer's EIP-712 signature
      */
     function pay(
-        address token,
-        uint256 amount,
-        string calldata serialNo,
-        uint256 deadline,
+        PaymentRequest calldata request,
         bytes calldata signature
     ) external payable;
 
     /**
      * @notice Withdraw with signature verification (ETH or ERC20)
-     * @param token Token address (address(0) for ETH)
-     * @param amount Amount to withdraw
-     * @param serialNo Unique serial number
-     * @param deadline Signature expiration timestamp
+     * @param request Withdrawal request details (user must match msg.sender)
      * @param signature Signer's EIP-712 signature
      */
     function withdraw(
-        address token,
-        uint256 amount,
-        string calldata serialNo,
-        uint256 deadline,
+        WithdrawalRequest calldata request,
         bytes calldata signature
     ) external;
 
