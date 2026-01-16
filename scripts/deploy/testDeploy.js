@@ -8,7 +8,8 @@
 const { ethers, upgrades } = require("hardhat");
 
 async function main() {
-    const [deployer, admin, signer, feeVault, user] = await ethers.getSigners();
+    const [deployer, admin, signer, , user] = await ethers.getSigners();
+    const feeVault = deployer; // Fee vault is the deployer
     const network = await ethers.provider.getNetwork();
 
     console.log("========================================");
@@ -18,7 +19,7 @@ async function main() {
     console.log("Deployer:", deployer.address);
     console.log("========================================\n");
 
-    const FEE_RATE = 100; // 1%
+    const FEE_RATE = 20; // 0.2% (20 basis points, 10000 = 100%)
 
     // Step 1: Deploy PayTheFlyPro implementation
     console.log("Step 1: Deploying PayTheFlyPro implementation...");
@@ -114,6 +115,51 @@ async function main() {
     const balance = await project.getBalance(ethers.ZeroAddress);
     console.log("  Payment received:", ethers.formatEther(balance.paymentBalance), "ETH");
     console.log("  Fee collected:", ethers.formatEther(feeVaultBalanceAfter - feeVaultBalanceBefore), "ETH");
+
+    // Step 6: Test ERC20 token payment
+    console.log("\nStep 6: Testing ERC20 token payment...");
+
+    // Deploy MockERC20
+    const MockERC20 = await ethers.getContractFactory("MockERC20");
+    const mockToken = await MockERC20.deploy("Test Token", "TEST", 18);
+    await mockToken.waitForDeployment();
+    const tokenAddress = await mockToken.getAddress();
+    console.log("  Mock Token deployed:", tokenAddress);
+
+    // Mint tokens to user
+    const tokenAmount = ethers.parseEther("100");
+    await mockToken.mint(user.address, tokenAmount);
+    console.log("  Minted", ethers.formatEther(tokenAmount), "TEST to user");
+
+    // Approve tokens
+    await mockToken.connect(user).approve(projectAddress, tokenAmount);
+    console.log("  Approved tokens for project");
+
+    // Create token payment signature
+    const tokenSerialNo = "TEST-PAY-TOKEN-001";
+    const tokenDeadline = Math.floor(Date.now() / 1000) + 3600;
+
+    const tokenPaymentValue = {
+        projectId: projectId,
+        token: tokenAddress,
+        amount: tokenAmount,
+        serialNo: tokenSerialNo,
+        deadline: tokenDeadline
+    };
+
+    const tokenSignature = await signer.signTypedData(domain, types, tokenPaymentValue);
+
+    // Execute token payment
+    const feeVaultTokenBalanceBefore = await mockToken.balanceOf(feeVault.address);
+    await project.connect(user).pay(
+        { token: tokenAddress, amount: tokenAmount, serialNo: tokenSerialNo, deadline: tokenDeadline },
+        tokenSignature
+    );
+    const feeVaultTokenBalanceAfter = await mockToken.balanceOf(feeVault.address);
+
+    const tokenBalance = await project.getBalance(tokenAddress);
+    console.log("  Token payment received:", ethers.formatEther(tokenBalance.paymentBalance), "TEST");
+    console.log("  Token fee collected:", ethers.formatEther(feeVaultTokenBalanceAfter - feeVaultTokenBalanceBefore), "TEST");
 
     // Summary
     console.log("\n========================================");
