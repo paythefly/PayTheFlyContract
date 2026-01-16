@@ -16,10 +16,10 @@ describe("Payment", function () {
     const projectId = "payment-test-project";
     const projectName = "Payment Test";
 
-    // EIP-712 domain and types
+    // EIP-712 domain and types (consistent with EulerPay format)
     const PAYMENT_TYPES = {
-        Payment: [
-            { name: "payer", type: "address" },
+        PaymentRequest: [
+            { name: "projectId", type: "string" },
             { name: "token", type: "address" },
             { name: "amount", type: "uint256" },
             { name: "serialNo", type: "string" },
@@ -28,8 +28,9 @@ describe("Payment", function () {
     };
 
     const WITHDRAWAL_TYPES = {
-        Withdrawal: [
-            { name: "recipient", type: "address" },
+        WithdrawalRequest: [
+            { name: "user", type: "address" },
+            { name: "projectId", type: "string" },
             { name: "token", type: "address" },
             { name: "amount", type: "uint256" },
             { name: "serialNo", type: "string" },
@@ -102,7 +103,7 @@ describe("Payment", function () {
             const deadline = (await time.latest()) + 3600;
 
             const payment = {
-                payer: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,
@@ -138,7 +139,7 @@ describe("Payment", function () {
 
             // Sign with wrong signer
             const payment = {
-                payer: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,
@@ -162,7 +163,7 @@ describe("Payment", function () {
             const deadline = (await time.latest()) - 3600; // Past deadline
 
             const payment = {
-                payer: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,
@@ -186,7 +187,7 @@ describe("Payment", function () {
             const deadline = (await time.latest()) + 3600;
 
             const payment = {
-                payer: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,
@@ -217,7 +218,7 @@ describe("Payment", function () {
             const deadline = (await time.latest()) + 3600;
 
             const payment = {
-                payer: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: 0,
                 serialNo: serialNo,
@@ -241,7 +242,7 @@ describe("Payment", function () {
             const deadline = (await time.latest()) + 3600;
 
             const payment = {
-                payer: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,
@@ -271,7 +272,7 @@ describe("Payment", function () {
             await mockToken.connect(payer).approve(await project.getAddress(), amount);
 
             const payment = {
-                payer: payer.address,
+                projectId: projectId,
                 token: await mockToken.getAddress(),
                 amount: amount,
                 serialNo: serialNo,
@@ -308,7 +309,7 @@ describe("Payment", function () {
 
             // Sign with ETH address instead of token address
             const payment = {
-                payer: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress, // Wrong token
                 amount: amount,
                 serialNo: serialNo,
@@ -343,7 +344,8 @@ describe("Payment", function () {
             const deadline = (await time.latest()) + 3600;
 
             const withdrawal = {
-                recipient: payer.address,
+                user: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,
@@ -375,7 +377,8 @@ describe("Payment", function () {
             const deadline = (await time.latest()) + 3600;
 
             const withdrawal = {
-                recipient: payer.address,
+                user: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,
@@ -399,7 +402,8 @@ describe("Payment", function () {
 
             // Signature is for admin, but payer tries to withdraw
             const withdrawal = {
-                recipient: admin.address,
+                user: admin.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,
@@ -436,7 +440,8 @@ describe("Payment", function () {
             const deadline = (await time.latest()) + 3600;
 
             const withdrawal = {
-                recipient: payer.address,
+                user: payer.address,
+                projectId: projectId,
                 token: await mockToken.getAddress(),
                 amount: amount,
                 serialNo: serialNo,
@@ -490,7 +495,7 @@ describe("Payment", function () {
             const deadline = (await time.latest()) + 3600;
 
             const payment = {
-                payer: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,
@@ -514,7 +519,8 @@ describe("Payment", function () {
             const deadline = (await time.latest()) + 3600;
 
             const withdrawal = {
-                recipient: payer.address,
+                user: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,
@@ -540,7 +546,7 @@ describe("Payment", function () {
             const deadline = (await time.latest()) + 3600;
 
             const payment = {
-                payer: payer.address,
+                projectId: projectId,
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,

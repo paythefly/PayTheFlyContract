@@ -266,9 +266,10 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         if (request.amount == 0) revert InvalidAmount();
 
         // Verify signature first (before any transfers)
+        // No payer binding - anyone can pay with valid signature (consistent with EulerPay)
         bytes32 structHash = keccak256(abi.encode(
             TypeHashes.PAYMENT_TYPEHASH,
-            msg.sender,
+            keccak256(bytes(_projectId)),
             request.token,
             request.amount,
             keccak256(bytes(request.serialNo)),
@@ -322,10 +323,11 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         if (block.timestamp > request.deadline) revert ExpiredDeadline();
         if (request.amount == 0) revert InvalidAmount();
 
-        // Verify signature
+        // Verify signature (consistent with EulerPay format)
         bytes32 structHash = keccak256(abi.encode(
             TypeHashes.WITHDRAWAL_TYPEHASH,
             request.user,
+            keccak256(bytes(_projectId)),
             request.token,
             request.amount,
             keccak256(bytes(request.serialNo)),

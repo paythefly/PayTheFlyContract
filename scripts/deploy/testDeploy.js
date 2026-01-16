@@ -84,8 +84,8 @@ async function main() {
     };
 
     const types = {
-        Payment: [
-            { name: "payer", type: "address" },
+        PaymentRequest: [
+            { name: "projectId", type: "string" },
             { name: "token", type: "address" },
             { name: "amount", type: "uint256" },
             { name: "serialNo", type: "string" },
@@ -94,7 +94,7 @@ async function main() {
     };
 
     const value = {
-        payer: user.address,
+        projectId: projectId,
         token: ethers.ZeroAddress,
         amount: amount,
         serialNo: serialNo,

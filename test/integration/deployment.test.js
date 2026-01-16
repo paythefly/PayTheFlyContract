@@ -80,8 +80,8 @@ describe("Deployment Integration Test", function () {
             };
 
             const types = {
-                Payment: [
-                    { name: "payer", type: "address" },
+                PaymentRequest: [
+                    { name: "projectId", type: "string" },
                     { name: "token", type: "address" },
                     { name: "amount", type: "uint256" },
                     { name: "serialNo", type: "string" },
@@ -90,7 +90,7 @@ describe("Deployment Integration Test", function () {
             };
 
             const value = {
-                payer: user.address,
+                projectId: "test-project-1",
                 token: ethers.ZeroAddress,
                 amount: amount,
                 serialNo: serialNo,
