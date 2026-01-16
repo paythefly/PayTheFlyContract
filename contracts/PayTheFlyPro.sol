@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPayTheFlyPro} from "./interfaces/IPayTheFlyPro.sol";
@@ -17,7 +18,7 @@ import {SafeERC20Universal} from "./libraries/SafeERC20Universal.sol";
  * @notice Project contract for payment management with multi-sig admin functionality
  * @dev Deployed as BeaconProxy, uses EIP-712 for signature verification
  */
-contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
+contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, ReentrancyGuardUpgradeable {
     using ECDSA for bytes32;
 
     // ============ Storage ============
@@ -118,6 +119,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         address signer
     ) external initializer {
         __EIP712_init("PayTheFlyPro", "1");
+        __ReentrancyGuard_init();
 
         _factory = msg.sender;
         _projectId = projectId;
@@ -263,7 +265,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
     function pay(
         PaymentRequest calldata request,
         bytes calldata signature
-    ) external payable override whenNotPaused {
+    ) external payable override whenNotPaused nonReentrant {
         _validateSerialNo(request.serialNo);
         if (block.timestamp > request.deadline) revert ExpiredDeadline();
         if (request.amount == 0) revert InvalidAmount();
@@ -319,7 +321,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
     function withdraw(
         WithdrawalRequest calldata request,
         bytes calldata signature
-    ) external override whenNotPaused {
+    ) external override whenNotPaused nonReentrant {
         // User must match msg.sender to prevent MEV front-running
         if (request.user != msg.sender) revert InvalidAddress();
         _validateSerialNo(request.serialNo);
@@ -466,7 +468,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
     }
 
     /// @inheritdoc IPayTheFlyPro
-    function executeProposal(uint256 proposalId) external override onlyAdmin {
+    function executeProposal(uint256 proposalId) external override onlyAdmin nonReentrant {
         DataTypes.Proposal storage p = _proposals[proposalId];
 
         if (p.proposer == address(0)) revert ProposalNotFound();
@@ -485,26 +487,27 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
 
     // ============ Internal Functions ============
 
+    /// @dev Validates serial number format and uniqueness
     function _validateSerialNo(string calldata serialNo) internal view {
         if (bytes(serialNo).length == 0) revert Errors.SerialNoEmpty();
         if (bytes(serialNo).length > DataTypes.MAX_SERIAL_NO_LENGTH) revert SerialNoTooLong();
         if (_usedPaymentSerialNos[serialNo] || _usedWithdrawalSerialNos[serialNo]) revert SerialNoUsed();
     }
 
+    /// @dev Verifies EIP-712 signature against the signer
     function _verifySignature(bytes32 structHash, bytes calldata signature) internal view {
         bytes32 hash = _hashTypedDataV4(structHash);
         address recoveredSigner = hash.recover(signature);
         if (recoveredSigner != _signer) revert InvalidSignature();
     }
 
+    /// @dev Calculates fee amount based on factory fee rate
     function _calculateFee(uint256 amount) internal view returns (uint256) {
         uint256 rate = IPayTheFlyProFactory(_factory).feeRate();
         return (amount * rate) / DataTypes.BASIS_POINTS;
     }
 
-    // Note: _getActiveProposalCount() removed to fix DoS vulnerability (HIGH-001)
-    // Now using _pendingProposalCount counter for O(1) access
-
+    /// @dev Returns list of admins who confirmed a proposal
     function _getConfirmedBy(uint256 proposalId) internal view returns (address[] memory) {
         DataTypes.Proposal storage p = _proposals[proposalId];
         address[] memory confirmed = new address[](p.confirmCount);
@@ -519,6 +522,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         return confirmed;
     }
 
+    /// @dev Routes proposal execution to the appropriate handler
     function _executeOperation(
         uint256 proposalId,
         DataTypes.OperationType opType,
@@ -547,6 +551,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         }
     }
 
+    /// @dev Executes SetSigner proposal
     function _executeSetSigner(uint256 proposalId, bytes memory params) internal {
         address newSigner = abi.decode(params, (address));
         if (newSigner == address(0)) revert InvalidAddress();
@@ -557,6 +562,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         emit SignerUpdated(oldSigner, newSigner, proposalId);
     }
 
+    /// @dev Executes AddAdmin proposal
     function _executeAddAdmin(uint256 proposalId, bytes memory params) internal {
         address newAdmin = abi.decode(params, (address));
         if (newAdmin == address(0)) revert InvalidAddress();
@@ -570,6 +576,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         emit AdminAdded(newAdmin, proposalId);
     }
 
+    /// @dev Executes RemoveAdmin proposal
     function _executeRemoveAdmin(uint256 proposalId, bytes memory params) internal {
         address admin = abi.decode(params, (address));
         if (!_isAdmin[admin]) revert AdminNotFound();
@@ -592,6 +599,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         emit AdminRemoved(admin, proposalId);
     }
 
+    /// @dev Executes ChangeThreshold proposal
     function _executeChangeThreshold(uint256 proposalId, bytes memory params) internal {
         uint256 newThreshold = abi.decode(params, (uint256));
         if (newThreshold == 0 || newThreshold > _admins.length) revert InvalidThreshold();
@@ -602,7 +610,8 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         emit ThresholdChanged(oldThreshold, newThreshold, proposalId);
     }
 
-    function _executeAdminWithdraw(uint256 proposalId, bytes memory params) internal {
+    /// @dev Executes AdminWithdraw proposal (withdraw from payment pool)
+    function _executeAdminWithdraw(uint256 /* proposalId */, bytes memory params) internal {
         (address token, uint256 amount, address recipient) = abi.decode(params, (address, uint256, address));
         if (recipient == address(0)) revert InvalidAddress();
         if (amount == 0) revert InvalidAmount();
@@ -620,7 +629,8 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         emit Transaction(_projectId, token, recipient, amount, 0, "", TxType.ADMIN_WITHDRAWAL);
     }
 
-    function _executeWithdrawFromPool(uint256 proposalId, bytes memory params) internal {
+    /// @dev Executes WithdrawFromPool proposal (withdraw from withdrawal pool)
+    function _executeWithdrawFromPool(uint256 /* proposalId */, bytes memory params) internal {
         (address token, uint256 amount, address recipient) = abi.decode(params, (address, uint256, address));
         if (recipient == address(0)) revert InvalidAddress();
         if (amount == 0) revert InvalidAmount();
@@ -638,17 +648,20 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         emit Transaction(_projectId, token, recipient, amount, 0, "", TxType.POOL_WITHDRAW);
     }
 
+    /// @dev Executes Pause proposal
     function _executePause(uint256 proposalId) internal {
         _paused = true;
         emit ProjectPaused(proposalId);
     }
 
+    /// @dev Executes Unpause proposal
     function _executeUnpause(uint256 proposalId) internal {
         _paused = false;
         emit ProjectUnpaused(proposalId);
     }
 
-    function _executeEmergencyWithdraw(uint256 proposalId, bytes memory params) internal {
+    /// @dev Executes EmergencyWithdraw proposal (withdraw all funds)
+    function _executeEmergencyWithdraw(uint256 /* proposalId */, bytes memory params) internal {
         (address token, address recipient) = abi.decode(params, (address, address));
         if (recipient == address(0)) revert InvalidAddress();
 
