@@ -258,64 +258,33 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
 
     /// @inheritdoc IPayTheFlyPro
     function pay(
+        address token,
+        uint256 amount,
         string calldata serialNo,
         uint256 deadline,
         bytes calldata signature
     ) external payable override whenNotPaused {
         _validateSerialNo(serialNo);
         if (block.timestamp > deadline) revert ExpiredDeadline();
-        if (msg.value == 0) revert InvalidAmount();
 
-        // Verify signature
-        bytes32 structHash = keccak256(abi.encode(
-            TypeHashes.PAYMENT_TYPEHASH,
-            msg.sender,
-            address(0), // ETH
-            msg.value,
-            keccak256(bytes(serialNo)),
-            deadline
-        ));
-        _verifySignature(structHash, signature);
-
-        // Mark serial number as used
-        _usedPaymentSerialNos[serialNo] = true;
-
-        // Calculate fee
-        uint256 feeAmount = _calculateFee(msg.value);
-        uint256 netAmount = msg.value - feeAmount;
-
-        // Transfer fee to vault
-        if (feeAmount > 0) {
-            address vault = IPayTheFlyProFactory(_factory).feeVault();
-            (bool success, ) = vault.call{value: feeAmount}("");
-            if (!success) revert Errors.TransferFailed();
+        uint256 paymentAmount;
+        if (token == address(0)) {
+            // ETH payment
+            if (msg.value == 0) revert InvalidAmount();
+            paymentAmount = msg.value;
+        } else {
+            // ERC20 payment
+            if (msg.value != 0) revert InvalidAmount(); // No ETH for token payment
+            if (amount == 0) revert InvalidAmount();
+            paymentAmount = amount;
         }
-
-        // Add to payment balance
-        _paymentBalances[address(0)] += netAmount;
-
-        emit Transaction(_projectId, address(0), msg.sender, netAmount, feeAmount, serialNo, TxType.PAYMENT);
-    }
-
-    /// @inheritdoc IPayTheFlyPro
-    function payToken(
-        address token,
-        uint256 amount,
-        string calldata serialNo,
-        uint256 deadline,
-        bytes calldata signature
-    ) external override whenNotPaused {
-        _validateSerialNo(serialNo);
-        if (block.timestamp > deadline) revert ExpiredDeadline();
-        if (amount == 0) revert InvalidAmount();
-        if (token == address(0)) revert InvalidAddress();
 
         // Verify signature
         bytes32 structHash = keccak256(abi.encode(
             TypeHashes.PAYMENT_TYPEHASH,
             msg.sender,
             token,
-            amount,
+            paymentAmount,
             keccak256(bytes(serialNo)),
             deadline
         ));
@@ -325,16 +294,24 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         _usedPaymentSerialNos[serialNo] = true;
 
         // Calculate fee
-        uint256 feeAmount = _calculateFee(amount);
-        uint256 netAmount = amount - feeAmount;
+        uint256 feeAmount = _calculateFee(paymentAmount);
+        uint256 netAmount = paymentAmount - feeAmount;
 
-        // Transfer tokens from sender
-        SafeERC20Universal.safeTransferFrom(IERC20(token), msg.sender, address(this), amount);
-
-        // Transfer fee to vault
-        if (feeAmount > 0) {
-            address vault = IPayTheFlyProFactory(_factory).feeVault();
-            SafeERC20Universal.safeTransfer(IERC20(token), vault, feeAmount);
+        if (token == address(0)) {
+            // ETH: Transfer fee to vault
+            if (feeAmount > 0) {
+                address vault = IPayTheFlyProFactory(_factory).feeVault();
+                (bool success, ) = vault.call{value: feeAmount}("");
+                if (!success) revert Errors.TransferFailed();
+            }
+        } else {
+            // ERC20: Transfer tokens from sender first
+            SafeERC20Universal.safeTransferFrom(IERC20(token), msg.sender, address(this), paymentAmount);
+            // Transfer fee to vault
+            if (feeAmount > 0) {
+                address vault = IPayTheFlyProFactory(_factory).feeVault();
+                SafeERC20Universal.safeTransfer(IERC20(token), vault, feeAmount);
+            }
         }
 
         // Add to payment balance
@@ -345,42 +322,6 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
 
     /// @inheritdoc IPayTheFlyPro
     function withdraw(
-        uint256 amount,
-        string calldata serialNo,
-        uint256 deadline,
-        bytes calldata signature
-    ) external override whenNotPaused {
-        _validateSerialNo(serialNo);
-        if (block.timestamp > deadline) revert ExpiredDeadline();
-        if (amount == 0) revert InvalidAmount();
-
-        // Verify signature
-        bytes32 structHash = keccak256(abi.encode(
-            TypeHashes.WITHDRAWAL_TYPEHASH,
-            msg.sender,
-            address(0), // ETH
-            amount,
-            keccak256(bytes(serialNo)),
-            deadline
-        ));
-        _verifySignature(structHash, signature);
-
-        // Mark serial number as used
-        _usedWithdrawalSerialNos[serialNo] = true;
-
-        // Check and update balance
-        if (_withdrawalBalances[address(0)] < amount) revert InsufficientBalance();
-        _withdrawalBalances[address(0)] -= amount;
-
-        // Transfer ETH
-        (bool success, ) = msg.sender.call{value: amount}("");
-        if (!success) revert Errors.TransferFailed();
-
-        emit Transaction(_projectId, address(0), msg.sender, amount, 0, serialNo, TxType.WITHDRAWAL);
-    }
-
-    /// @inheritdoc IPayTheFlyPro
-    function withdrawToken(
         address token,
         uint256 amount,
         string calldata serialNo,
@@ -390,7 +331,6 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         _validateSerialNo(serialNo);
         if (block.timestamp > deadline) revert ExpiredDeadline();
         if (amount == 0) revert InvalidAmount();
-        if (token == address(0)) revert InvalidAddress();
 
         // Verify signature
         bytes32 structHash = keccak256(abi.encode(
@@ -410,8 +350,15 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable {
         if (_withdrawalBalances[token] < amount) revert InsufficientBalance();
         _withdrawalBalances[token] -= amount;
 
-        // Transfer tokens
-        SafeERC20Universal.safeTransfer(IERC20(token), msg.sender, amount);
+        // Transfer funds
+        if (token == address(0)) {
+            // ETH transfer
+            (bool success, ) = msg.sender.call{value: amount}("");
+            if (!success) revert Errors.TransferFailed();
+        } else {
+            // ERC20 transfer
+            SafeERC20Universal.safeTransfer(IERC20(token), msg.sender, amount);
+        }
 
         emit Transaction(_projectId, token, msg.sender, amount, 0, serialNo, TxType.WITHDRAWAL);
     }

@@ -228,56 +228,30 @@ interface IPayTheFlyPro {
     // ============ Payment Functions ============
 
     /**
-     * @notice Pay with signature verification (ETH)
+     * @notice Pay with signature verification (ETH or ERC20)
+     * @param token Token address (address(0) for ETH)
+     * @param amount Amount to pay (ignored for ETH, uses msg.value)
      * @param serialNo Unique serial number
      * @param deadline Signature expiration timestamp
      * @param signature Signer's EIP-712 signature
      */
     function pay(
+        address token,
+        uint256 amount,
         string calldata serialNo,
         uint256 deadline,
         bytes calldata signature
     ) external payable;
 
     /**
-     * @notice Pay with signature verification (ERC20)
-     * @param token Token address
-     * @param amount Amount to pay
-     * @param serialNo Unique serial number
-     * @param deadline Signature expiration timestamp
-     * @param signature Signer's EIP-712 signature
-     */
-    function payToken(
-        address token,
-        uint256 amount,
-        string calldata serialNo,
-        uint256 deadline,
-        bytes calldata signature
-    ) external;
-
-    /**
-     * @notice Withdraw with signature verification (ETH)
+     * @notice Withdraw with signature verification (ETH or ERC20)
+     * @param token Token address (address(0) for ETH)
      * @param amount Amount to withdraw
      * @param serialNo Unique serial number
      * @param deadline Signature expiration timestamp
      * @param signature Signer's EIP-712 signature
      */
     function withdraw(
-        uint256 amount,
-        string calldata serialNo,
-        uint256 deadline,
-        bytes calldata signature
-    ) external;
-
-    /**
-     * @notice Withdraw with signature verification (ERC20)
-     * @param token Token address
-     * @param amount Amount to withdraw
-     * @param serialNo Unique serial number
-     * @param deadline Signature expiration timestamp
-     * @param signature Signer's EIP-712 signature
-     */
-    function withdrawToken(
         address token,
         uint256 amount,
         string calldata serialNo,

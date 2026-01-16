@@ -100,7 +100,7 @@ describe("Deployment Integration Test", function () {
             const signature = await signer.signTypedData(domain, types, value);
 
             // Process payment
-            await project.connect(user).pay(serialNo, deadline, signature, { value: amount });
+            await project.connect(user).pay(ethers.ZeroAddress, amount, serialNo, deadline, signature, { value: amount });
 
             // Verify balance
             const balance = await project.getBalance(ethers.ZeroAddress);
