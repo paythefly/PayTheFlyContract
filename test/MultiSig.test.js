@@ -621,7 +621,7 @@ describe("MultiSig", function () {
 
             await expect(
                 project.connect(admin1).depositToWithdrawalPool(ethers.ZeroAddress, 0, { value: amount })
-            ).to.emit(project, "Transaction")
+            ).to.emit(project, "PayTheFlyTransaction")
                 .withArgs(projectId, ethers.ZeroAddress, admin1.address, amount, 0, "", 4); // TxType.POOL_DEPOSIT = 4
 
             const balance = await project.getBalance(ethers.ZeroAddress);

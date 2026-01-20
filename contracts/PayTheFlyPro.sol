@@ -314,7 +314,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
         // Add to payment balance
         _paymentBalances[request.token] += netAmount;
 
-        emit Transaction(_projectId, request.token, msg.sender, netAmount, feeAmount, request.serialNo, TxType.PAYMENT);
+        emit PayTheFlyTransaction(_projectId, request.token, msg.sender, netAmount, feeAmount, request.serialNo, TxType.PAYMENT);
     }
 
     /// @inheritdoc IPayTheFlyPro
@@ -357,7 +357,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             SafeERC20Universal.safeTransfer(IERC20(request.token), msg.sender, request.amount);
         }
 
-        emit Transaction(_projectId, request.token, msg.sender, request.amount, 0, request.serialNo, TxType.WITHDRAWAL);
+        emit PayTheFlyTransaction(_projectId, request.token, msg.sender, request.amount, 0, request.serialNo, TxType.WITHDRAWAL);
     }
 
     // ============ Admin Functions (No Multi-Sig) ============
@@ -379,13 +379,13 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             // ETH deposit
             if (msg.value == 0) revert InvalidAmount();
             _withdrawalBalances[address(0)] += msg.value;
-            emit Transaction(_projectId, address(0), msg.sender, msg.value, 0, "", TxType.POOL_DEPOSIT);
+            emit PayTheFlyTransaction(_projectId, address(0), msg.sender, msg.value, 0, "", TxType.POOL_DEPOSIT);
         } else {
             // ERC20 deposit
             if (amount == 0) revert InvalidAmount();
             SafeERC20Universal.safeTransferFrom(IERC20(token), msg.sender, address(this), amount);
             _withdrawalBalances[token] += amount;
-            emit Transaction(_projectId, token, msg.sender, amount, 0, "", TxType.POOL_DEPOSIT);
+            emit PayTheFlyTransaction(_projectId, token, msg.sender, amount, 0, "", TxType.POOL_DEPOSIT);
         }
     }
 
@@ -626,7 +626,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             SafeERC20Universal.safeTransfer(IERC20(token), recipient, amount);
         }
 
-        emit Transaction(_projectId, token, recipient, amount, 0, "", TxType.ADMIN_WITHDRAWAL);
+        emit PayTheFlyTransaction(_projectId, token, recipient, amount, 0, "", TxType.ADMIN_WITHDRAWAL);
     }
 
     /// @dev Executes WithdrawFromPool proposal (withdraw from withdrawal pool)
@@ -645,7 +645,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             SafeERC20Universal.safeTransfer(IERC20(token), recipient, amount);
         }
 
-        emit Transaction(_projectId, token, recipient, amount, 0, "", TxType.POOL_WITHDRAW);
+        emit PayTheFlyTransaction(_projectId, token, recipient, amount, 0, "", TxType.POOL_WITHDRAW);
     }
 
     /// @dev Executes Pause proposal
@@ -678,7 +678,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             SafeERC20Universal.safeTransfer(IERC20(token), recipient, totalAmount);
         }
 
-        emit Transaction(_projectId, token, recipient, totalAmount, 0, "", TxType.EMERGENCY_WITHDRAW);
+        emit PayTheFlyTransaction(_projectId, token, recipient, totalAmount, 0, "", TxType.EMERGENCY_WITHDRAW);
     }
 
     // ============ Receive ETH ============

@@ -84,7 +84,8 @@ interface IPayTheFlyPro {
 
     /**
      * @notice Unified transaction event for backend monitoring
-     * @dev Emitted for all fund-related transactions to simplify event listening
+     * @dev Event name prefixed with "PayTheFly" to avoid collision with other contracts.
+     *      This unique signature enables efficient topic-based filtering across all project contracts.
      * @param projectId Project identifier
      * @param token Token address (address(0) for native ETH/TRX)
      * @param account User/recipient address involved in the transaction
@@ -93,7 +94,7 @@ interface IPayTheFlyPro {
      * @param serialNo Serial number (empty for pool operations)
      * @param txType Transaction type enum
      */
-    event Transaction(
+    event PayTheFlyTransaction(
         string projectId,
         address indexed token,
         address indexed account,
