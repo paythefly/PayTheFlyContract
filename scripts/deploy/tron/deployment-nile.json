@@ -1,0 +1,16 @@
+{
+  "network": "nile",
+  "networkName": "Nile Testnet",
+  "deployer": "TQD174ms4N23tWLPTLuedHWVHkPb6nTino",
+  "timestamp": "2026-01-21T06:00:51.478Z",
+  "contracts": {
+    "payTheFlyProImpl": "TVRYHk7T9schcfaKbrpcMTSTnLwN8jrJVb",
+    "factoryImpl": "TYjkijP3RRzNvKZBZabsepLUxmECfPvn8t",
+    "factoryProxy": "TJnbELzQWH7DL7X9qJ3GYctgaPvYSH9wkj",
+    "beacon": "TTgLRMy82jd81jXTdWURfZZroGTQF6f6wh"
+  },
+  "config": {
+    "feeVault": "TQD174ms4N23tWLPTLuedHWVHkPb6nTino",
+    "feeRate": 100
+  }
+}

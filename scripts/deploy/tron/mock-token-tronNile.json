@@ -1,0 +1,12 @@
+{
+  "network": "tronNile",
+  "timestamp": "2026-01-21T06:04:11.839Z",
+  "token": {
+    "address": "TK3PVJkuVTKGDkZByrhkGkgdc4gHFQ16Yf",
+    "addressHex": "4163838ccf2d92b91388eed258ab9ab4e82e0bdff1",
+    "name": "Mock USDT",
+    "symbol": "MUSDT",
+    "decimals": 6
+  },
+  "deployer": "TQD174ms4N23tWLPTLuedHWVHkPb6nTino"
+}

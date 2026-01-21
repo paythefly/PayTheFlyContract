@@ -2,57 +2,75 @@
  * Create a new project on TRON using PayTheFlyProFactory
  *
  * Usage:
- *   TRON_PRIVATE_KEY=xxx TRON_NETWORK=shasta FACTORY=Txxx PROJECT_ID=myproject \
- *     PROJECT_NAME="My Project" ADMIN=Txxx SIGNER=Txxx node scripts/deploy/tron/createProject.js
+ *   npx hardhat run scripts/deploy/tron/createProject.js --network tronLocal
+ *
+ * Environment Variables:
+ *   FACTORY - Factory address (or reads from deployment-local.json)
+ *   PROJECT_ID - Project ID (required)
+ *   PROJECT_NAME - Project name (optional, defaults to PROJECT_ID)
+ *   ADMIN - Admin address (optional, defaults to deployer)
+ *   SIGNER - Signer address (optional, defaults to deployer)
  */
 
 const { TronWeb } = require("tronweb");
 const fs = require("fs");
 const path = require("path");
 
-// Network configurations
+// Try to load hardhat vars (but not hardhat runtime)
+let hardhatVars;
+try {
+    const { vars } = require("hardhat/config");
+    hardhatVars = vars;
+} catch (e) {}
+
 const NETWORKS = {
-    local: {
-        fullHost: "http://127.0.0.1:9090",
-        name: "Local TRE"
-    },
-    shasta: {
-        fullHost: "https://api.shasta.trongrid.io",
-        name: "Shasta Testnet"
-    },
-    nile: {
-        fullHost: "https://nile.trongrid.io",
-        name: "Nile Testnet"
-    },
-    mainnet: {
-        fullHost: "https://api.trongrid.io",
-        name: "TRON Mainnet"
-    }
+    tronLocal: { fullHost: "http://127.0.0.1:9090", name: "Local TRE", keyName: "TRE_LOCAL_TRON_DEVELOPMENT_KEY_1" },
+    local: { fullHost: "http://127.0.0.1:9090", name: "Local TRE", keyName: "TRE_LOCAL_TRON_DEVELOPMENT_KEY_1" },
+    tronShasta: { fullHost: "https://api.shasta.trongrid.io", name: "Shasta Testnet", keyName: "TRON_DEVELOPMENT_KEY" },
+    shasta: { fullHost: "https://api.shasta.trongrid.io", name: "Shasta Testnet", keyName: "TRON_DEVELOPMENT_KEY" },
+    tronNile: { fullHost: "https://nile.trongrid.io", name: "Nile Testnet", keyName: "TRON_DEVELOPMENT_KEY" },
+    nile: { fullHost: "https://nile.trongrid.io", name: "Nile Testnet", keyName: "TRON_DEVELOPMENT_KEY" },
+    tronMainnet: { fullHost: "https://api.trongrid.io", name: "TRON Mainnet", keyName: "TRON_DEVELOPMENT_KEY" },
+    mainnet: { fullHost: "https://api.trongrid.io", name: "TRON Mainnet", keyName: "TRON_DEVELOPMENT_KEY" }
 };
 
+function getPrivateKey(networkConfig) {
+    if (process.env.TRON_PRIVATE_KEY) return process.env.TRON_PRIVATE_KEY;
+    if (hardhatVars) {
+        try { return hardhatVars.get(networkConfig.keyName); } catch (e) {}
+    }
+    throw new Error(`Private key not found. Set TRON_PRIVATE_KEY or hardhat var ${networkConfig.keyName}`);
+}
+
 async function main() {
-    // Configuration
-    const privateKey = process.env.TRON_PRIVATE_KEY;
-    const networkName = process.env.TRON_NETWORK || "shasta";
-    const factoryAddress = process.env.FACTORY;
+    // Determine network from env
+    const networkName = process.env.TRON_NETWORK || "local";
+
+    const networkConfig = NETWORKS[networkName];
+    if (!networkConfig) throw new Error(`Unknown network: ${networkName}`);
+
+    const privateKey = getPrivateKey(networkConfig);
+
+    // Load factory from deployment file if not provided
+    let factoryAddress = process.env.FACTORY;
+    if (!factoryAddress) {
+        const deployFile = path.join(__dirname, `deployment-${networkName.replace('tron', '').toLowerCase() || 'local'}.json`);
+        if (fs.existsSync(deployFile)) {
+            const data = JSON.parse(fs.readFileSync(deployFile));
+            factoryAddress = data.contracts.factoryProxy;
+        }
+    }
+
     const projectId = process.env.PROJECT_ID;
     const projectName = process.env.PROJECT_NAME || projectId;
     const adminAddress = process.env.ADMIN;
     const signerAddress = process.env.SIGNER;
 
-    if (!privateKey) {
-        throw new Error("TRON_PRIVATE_KEY environment variable is required");
-    }
     if (!factoryAddress) {
-        throw new Error("FACTORY environment variable is required");
+        throw new Error("FACTORY environment variable required or deploy factory first");
     }
     if (!projectId) {
         throw new Error("PROJECT_ID environment variable is required");
-    }
-
-    const networkConfig = NETWORKS[networkName];
-    if (!networkConfig) {
-        throw new Error(`Unknown network: ${networkName}`);
     }
 
     // Initialize TronWeb
@@ -60,6 +78,21 @@ async function main() {
         fullHost: networkConfig.fullHost,
         privateKey: privateKey
     });
+
+    // Patch for TRE compatibility (TRE doesn't support /wallet/getblock)
+    if (networkName === "local" || networkName === "tronLocal") {
+        tronWeb.trx.getCurrentRefBlockParams = async function() {
+            const block = await tronWeb.fullNode.request('wallet/getnowblock', {}, 'post');
+            const { number, timestamp } = block.block_header.raw_data;
+            return {
+                ref_block_bytes: number.toString(16).slice(-4).padStart(4, '0'),
+                ref_block_hash: block.blockID.slice(16, 32),
+                expiration: timestamp + 60 * 1000,
+                timestamp,
+            };
+        };
+        console.log("Applied TRE compatibility patch\n");
+    }
 
     const deployerAddress = tronWeb.address.fromPrivateKey(privateKey);
     const admin = adminAddress || deployerAddress;
@@ -120,17 +153,32 @@ async function main() {
     console.log("\nProject created successfully!");
     console.log("Project Address:", projectAddressBase58);
 
-    // Verify project info
-    const project = await tronWeb.contract(projectArtifact.abi, projectAddress);
-    const info = await project.getProjectInfo().call();
+    // Verify project info with retry
+    let info;
+    for (let i = 0; i < 5; i++) {
+        try {
+            const project = await tronWeb.contract(projectArtifact.abi, projectAddress);
+            info = await project.getProjectInfo().call();
+            break;
+        } catch (e) {
+            if (i < 4) {
+                console.log(`  Verification attempt ${i + 1} failed, retrying in 5s...`);
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            } else {
+                console.log("  Warning: Could not verify project. Contract may still be confirming.");
+            }
+        }
+    }
 
-    console.log("\nProject Info:");
-    console.log("  Project ID:", info.projectId);
-    console.log("  Name:", info.name);
-    console.log("  Creator:", tronWeb.address.fromHex(info.creator));
-    console.log("  Signer:", tronWeb.address.fromHex(info.signer));
-    console.log("  Paused:", info.paused);
-    console.log("  Threshold:", info.threshold.toString());
+    if (info) {
+        console.log("\nProject Info:");
+        console.log("  Project ID:", info.projectId);
+        console.log("  Name:", info.name);
+        console.log("  Creator:", tronWeb.address.fromHex(info.creator));
+        console.log("  Signer:", tronWeb.address.fromHex(info.signer));
+        console.log("  Paused:", info.paused);
+        console.log("  Threshold:", info.threshold.toString());
+    }
 
     // Summary
     console.log("\n========================================");
