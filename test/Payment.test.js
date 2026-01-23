@@ -120,7 +120,7 @@ describe("Payment", function () {
                     signature,
                     { value: amount }
                 )
-            ).to.emit(project, "PayTheFlyTransaction"); // TxType.PAYMENT = 1
+            ).to.emit(project, "PayTheFlyTransaction"); // TxType.PAYMENT = 0
 
             // Check fee was transferred
             const feeVaultBalanceAfter = await ethers.provider.getBalance(feeVault.address);
@@ -288,7 +288,7 @@ describe("Payment", function () {
                     { token: await mockToken.getAddress(), amount: amount, serialNo: serialNo, deadline: deadline },
                     signature
                 )
-            ).to.emit(project, "PayTheFlyTransaction"); // TxType.PAYMENT = 1
+            ).to.emit(project, "PayTheFlyTransaction"); // TxType.PAYMENT = 0
 
             // Check fee was transferred
             const feeVaultBalanceAfter = await mockToken.balanceOf(feeVault.address);
@@ -457,7 +457,7 @@ describe("Payment", function () {
                     { user: payer.address, token: await mockToken.getAddress(), amount: amount, serialNo: serialNo, deadline: deadline },
                     signature
                 )
-            ).to.emit(project, "PayTheFlyTransaction"); // TxType.WITHDRAWAL = 2
+            ).to.emit(project, "PayTheFlyTransaction"); // TxType.WITHDRAWAL = 1
 
             const payerBalanceAfter = await mockToken.balanceOf(payer.address);
             expect(payerBalanceAfter - payerBalanceBefore).to.equal(amount);

@@ -379,13 +379,13 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             // ETH deposit
             if (msg.value == 0) revert InvalidAmount();
             _withdrawalBalances[address(0)] += msg.value;
-            emit PayTheFlyTransaction(_projectId, address(0), msg.sender, msg.value, 0, "", TxType.POOL_DEPOSIT);
+            emit AdminPoolOperation(_projectId, address(0), msg.sender, msg.value, 0, AdminPoolOpType.POOL_DEPOSIT);
         } else {
             // ERC20 deposit
             if (amount == 0) revert InvalidAmount();
             SafeERC20Universal.safeTransferFrom(IERC20(token), msg.sender, address(this), amount);
             _withdrawalBalances[token] += amount;
-            emit PayTheFlyTransaction(_projectId, token, msg.sender, amount, 0, "", TxType.POOL_DEPOSIT);
+            emit AdminPoolOperation(_projectId, token, msg.sender, amount, 0, AdminPoolOpType.POOL_DEPOSIT);
         }
     }
 
@@ -611,7 +611,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
     }
 
     /// @dev Executes AdminWithdraw proposal (withdraw from payment pool)
-    function _executeAdminWithdraw(uint256 /* proposalId */, bytes memory params) internal {
+    function _executeAdminWithdraw(uint256 proposalId, bytes memory params) internal {
         (address token, uint256 amount, address recipient) = abi.decode(params, (address, uint256, address));
         if (recipient == address(0)) revert InvalidAddress();
         if (amount == 0) revert InvalidAmount();
@@ -626,11 +626,11 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             SafeERC20Universal.safeTransfer(IERC20(token), recipient, amount);
         }
 
-        emit PayTheFlyTransaction(_projectId, token, recipient, amount, 0, "", TxType.ADMIN_WITHDRAWAL);
+        emit AdminPoolOperation(_projectId, token, recipient, amount, proposalId, AdminPoolOpType.ADMIN_WITHDRAWAL);
     }
 
     /// @dev Executes WithdrawFromPool proposal (withdraw from withdrawal pool)
-    function _executeWithdrawFromPool(uint256 /* proposalId */, bytes memory params) internal {
+    function _executeWithdrawFromPool(uint256 proposalId, bytes memory params) internal {
         (address token, uint256 amount, address recipient) = abi.decode(params, (address, uint256, address));
         if (recipient == address(0)) revert InvalidAddress();
         if (amount == 0) revert InvalidAmount();
@@ -645,7 +645,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             SafeERC20Universal.safeTransfer(IERC20(token), recipient, amount);
         }
 
-        emit PayTheFlyTransaction(_projectId, token, recipient, amount, 0, "", TxType.POOL_WITHDRAW);
+        emit AdminPoolOperation(_projectId, token, recipient, amount, proposalId, AdminPoolOpType.POOL_WITHDRAW);
     }
 
     /// @dev Executes Pause proposal
@@ -661,7 +661,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
     }
 
     /// @dev Executes EmergencyWithdraw proposal (withdraw all funds)
-    function _executeEmergencyWithdraw(uint256 /* proposalId */, bytes memory params) internal {
+    function _executeEmergencyWithdraw(uint256 proposalId, bytes memory params) internal {
         (address token, address recipient) = abi.decode(params, (address, address));
         if (recipient == address(0)) revert InvalidAddress();
 
@@ -678,7 +678,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             SafeERC20Universal.safeTransfer(IERC20(token), recipient, totalAmount);
         }
 
-        emit PayTheFlyTransaction(_projectId, token, recipient, totalAmount, 0, "", TxType.EMERGENCY_WITHDRAW);
+        emit AdminPoolOperation(_projectId, token, recipient, totalAmount, proposalId, AdminPoolOpType.EMERGENCY_WITHDRAW);
     }
 
     // ============ Receive ETH ============

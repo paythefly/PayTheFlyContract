@@ -22,17 +22,23 @@ interface IPayTheFlyPro {
     }
 
     /**
-     * @notice Transaction types for unified event monitoring
-     * @dev Used by backend services to filter and process different transaction types
+     * @notice User transaction types
+     * @dev Used by backend services to filter user payment and withdrawal events
      */
     enum TxType {
-        NONE,                // 0: Reserved / Invalid
-        PAYMENT,             // 1: User payment (pay/payToken)
-        WITHDRAWAL,          // 2: User withdrawal with signature (withdraw/withdrawToken)
-        ADMIN_WITHDRAWAL,    // 3: Admin withdraws from payment pool (multi-sig)
-        POOL_DEPOSIT,        // 4: Admin deposits to withdrawal pool
-        POOL_WITHDRAW,       // 5: Admin withdraws from withdrawal pool (multi-sig)
-        EMERGENCY_WITHDRAW   // 6: Emergency withdrawal of all funds (multi-sig)
+        PAYMENT,     // 0: User payment with signature
+        WITHDRAWAL   // 1: User withdrawal with signature
+    }
+
+    /**
+     * @notice Admin pool operation types
+     * @dev Used by backend services to filter admin pool management events
+     */
+    enum AdminPoolOpType {
+        ADMIN_WITHDRAWAL,    // 0: Admin withdraws from payment pool (multi-sig)
+        POOL_DEPOSIT,        // 1: Admin deposits to withdrawal pool (no multi-sig)
+        POOL_WITHDRAW,       // 2: Admin withdraws from withdrawal pool (multi-sig)
+        EMERGENCY_WITHDRAW   // 3: Emergency withdrawal of all funds (multi-sig)
     }
 
     // ============ Structs ============
@@ -83,16 +89,16 @@ interface IPayTheFlyPro {
     // ============ Events ============
 
     /**
-     * @notice Unified transaction event for backend monitoring
+     * @notice User transaction event for payment and withdrawal
      * @dev Event name prefixed with "PayTheFly" to avoid collision with other contracts.
      *      This unique signature enables efficient topic-based filtering across all project contracts.
      * @param projectId Project identifier
      * @param token Token address (address(0) for native ETH/TRX)
-     * @param account User/recipient address involved in the transaction
+     * @param account User address involved in the transaction
      * @param amount Transaction amount (net amount after fees for payments)
-     * @param fee Fee amount (0 for non-payment transactions)
-     * @param serialNo Serial number (empty for pool operations)
-     * @param txType Transaction type enum
+     * @param fee Fee amount (only for PAYMENT type)
+     * @param serialNo Unique serial number for the transaction
+     * @param txType Transaction type (PAYMENT or WITHDRAWAL)
      */
     event PayTheFlyTransaction(
         string projectId,
@@ -102,6 +108,25 @@ interface IPayTheFlyPro {
         uint256 fee,
         string serialNo,
         TxType indexed txType
+    );
+
+    /**
+     * @notice Admin pool operation event for fund management
+     * @dev Separate from user transactions for clearer audit trail and proposalId tracking
+     * @param projectId Project identifier
+     * @param token Token address (address(0) for native ETH/TRX)
+     * @param recipient Recipient address for the funds
+     * @param amount Amount transferred
+     * @param proposalId Associated proposal ID (0 for POOL_DEPOSIT which doesn't require multi-sig)
+     * @param opType Operation type enum
+     */
+    event AdminPoolOperation(
+        string projectId,
+        address indexed token,
+        address indexed recipient,
+        uint256 amount,
+        uint256 indexed proposalId,
+        AdminPoolOpType opType
     );
 
     // Admin Events
