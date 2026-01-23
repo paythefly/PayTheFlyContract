@@ -26,8 +26,9 @@ interface IPayTheFlyPro {
      * @dev Used by backend services to filter user payment and withdrawal events
      */
     enum TxType {
-        PAYMENT,     // 0: User payment with signature
-        WITHDRAWAL   // 1: User withdrawal with signature
+        NONE,        // 0: Reserved / Invalid
+        PAYMENT,     // 1: User payment with signature
+        WITHDRAWAL   // 2: User withdrawal with signature
     }
 
     /**
@@ -35,10 +36,11 @@ interface IPayTheFlyPro {
      * @dev Used by backend services to filter admin pool management events
      */
     enum AdminPoolOpType {
-        ADMIN_WITHDRAWAL,    // 0: Admin withdraws from payment pool (multi-sig)
-        POOL_DEPOSIT,        // 1: Admin deposits to withdrawal pool (no multi-sig)
-        POOL_WITHDRAW,       // 2: Admin withdraws from withdrawal pool (multi-sig)
-        EMERGENCY_WITHDRAW   // 3: Emergency withdrawal of all funds (multi-sig)
+        NONE,                // 0: Reserved / Invalid
+        ADMIN_WITHDRAWAL,    // 1: Admin withdraws from payment pool (multi-sig)
+        POOL_DEPOSIT,        // 2: Admin deposits to withdrawal pool (no multi-sig)
+        POOL_WITHDRAW,       // 3: Admin withdraws from withdrawal pool (multi-sig)
+        EMERGENCY_WITHDRAW   // 4: Emergency withdrawal of all funds (multi-sig)
     }
 
     // ============ Structs ============
