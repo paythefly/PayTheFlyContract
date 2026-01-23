@@ -1,0 +1,16 @@
+{
+  "network": "local",
+  "networkName": "Local TRE",
+  "deployer": "TPL66VK2gCXNCD7EJg9pgJRfqcRazjhUZY",
+  "timestamp": "2026-01-21T05:52:15.864Z",
+  "contracts": {
+    "payTheFlyProImpl": "TYobxjCa16YL6hx2nKQGosNCNf1rXipB7C",
+    "factoryImpl": "TYzmL8t41TFtRWMiKJGX5KCGw3kJdc98X4",
+    "factoryProxy": "TG8Z2nv35f17wRXyAADWT8rCDfiVZLqJGJ",
+    "beacon": "TWQqjiFkixV84YPorCHt5waMvsx7U74bbm"
+  },
+  "config": {
+    "feeVault": "TVtiRNnzbrET6FndHBCLDxRBNid9LHMNjH",
+    "feeRate": 100
+  }
+}

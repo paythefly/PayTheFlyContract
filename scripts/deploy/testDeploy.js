@@ -8,9 +8,18 @@
 const { ethers, upgrades } = require("hardhat");
 
 async function main() {
-    const [deployer, admin, signer, , user] = await ethers.getSigners();
+    const signers = await ethers.getSigners();
+    const deployer = signers[0];
+    const admin = signers[1];
+    const signer = signers[2];
+    const user = signers[4];
     const feeVault = deployer; // Fee vault is the deployer
     const network = await ethers.provider.getNetwork();
+
+    // Verify we have enough signers
+    if (signers.length < 5) {
+        throw new Error(`Need at least 5 signers, got ${signers.length}`);
+    }
 
     console.log("========================================");
     console.log("PayTheFlyPro Test Deployment");
