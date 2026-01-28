@@ -23,5 +23,6 @@ ignition/deployments/chain-31337
 specs/
 CLAUDE.md
 artifacts-tron/
+artifacts-tron-old/
 cache-tron/
 deployments/
