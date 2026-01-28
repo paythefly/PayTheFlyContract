@@ -24,6 +24,9 @@ interface IPayTheFlyProFactory {
     /// @notice Emitted when fee rate is updated
     event FeeRateUpdated(uint256 oldRate, uint256 newRate);
 
+    /// @notice Emitted when withdrawal fee is updated
+    event WithdrawalFeeUpdated(uint256 oldFee, uint256 newFee);
+
     /// @notice Emitted when beacon implementation is upgraded
     event BeaconUpgraded(address indexed oldImpl, address indexed newImpl);
 
@@ -58,6 +61,12 @@ interface IPayTheFlyProFactory {
      * @return The fee rate in basis points (10000 = 100%)
      */
     function feeRate() external view returns (uint256);
+
+    /**
+     * @notice Get the withdrawal fee (native token amount)
+     * @return The withdrawal fee in wei
+     */
+    function withdrawalFee() external view returns (uint256);
 
     /**
      * @notice Get project contract address by project ID
@@ -107,6 +116,12 @@ interface IPayTheFlyProFactory {
      * @param newFeeRate The new fee rate in basis points (max 1000 = 10%)
      */
     function setFeeRate(uint256 newFeeRate) external;
+
+    /**
+     * @notice Update the withdrawal fee
+     * @param newWithdrawalFee The new withdrawal fee in wei (native token)
+     */
+    function setWithdrawalFee(uint256 newWithdrawalFee) external;
 
     /**
      * @notice Upgrade the beacon to a new implementation

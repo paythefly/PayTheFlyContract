@@ -1,0 +1,201 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Errors",
+  "sourceName": "contracts/libraries/Errors.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "AdminAlreadyExists",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "AdminNotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "AlreadyConfirmed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "DirectTransferNotAllowed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ExpiredDeadline",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FeeRateTooHigh",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InsufficientBalance",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidAdminAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidAmount",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidFeeVault",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidImplementation",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidOperationType",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidProposalDuration",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidSignature",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidSignerAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidThreshold",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "MaxAdminsReached",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NameEmpty",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NameTooLong",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotAdmin",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotConfirmed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotFactory",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotProposer",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ProjectAlreadyExists",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ProjectIdEmpty",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ProjectIdTooLong",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ProjectPausedError",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ProposalAlreadyExecuted",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ProposalCancelledError",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ProposalExpired",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ProposalNotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "SerialNoEmpty",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "SerialNoTooLong",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "SerialNoUsed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ThresholdNotReached",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ThresholdTooHigh",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TransferFailed",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea26474726f6e582212205f49efb4154bf0e20ca58621d229aa705a85999b7a5c7adf5a4c55fb18a8951064736f6c63430008180033",
+  "deployedBytecode": "0x600080fdfea26474726f6e582212205f49efb4154bf0e20ca58621d229aa705a85999b7a5c7adf5a4c55fb18a8951064736f6c63430008180033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -2,15 +2,43 @@
   "network": "nile",
   "networkName": "Nile Testnet",
   "deployer": "TQD174ms4N23tWLPTLuedHWVHkPb6nTino",
-  "timestamp": "2026-01-21T06:00:51.478Z",
+  "timestamp": "2026-01-28T12:48:18.181Z",
   "contracts": {
-    "payTheFlyProImpl": "TVRYHk7T9schcfaKbrpcMTSTnLwN8jrJVb",
-    "factoryImpl": "TYjkijP3RRzNvKZBZabsepLUxmECfPvn8t",
+    "payTheFlyProImpl": "TWU98Gdd9PPQGGoGYsMRXtnZCd3Nn6E2HV",
+    "factoryImpl": "TD7Q9jTNmGGwDjbYRxcZrnXfgLHCAnxza6",
     "factoryProxy": "TJnbELzQWH7DL7X9qJ3GYctgaPvYSH9wkj",
     "beacon": "TTgLRMy82jd81jXTdWURfZZroGTQF6f6wh"
   },
   "config": {
     "feeVault": "TQD174ms4N23tWLPTLuedHWVHkPb6nTino",
     "feeRate": 100
-  }
+  },
+  "upgrades": [
+    {
+      "timestamp": "2026-01-24T01:39:06.582Z",
+      "oldImpl": "TVRYHk7T9schcfaKbrpcMTSTnLwN8jrJVb",
+      "newImpl": "TCMgdatWwpVyZV6BTgnTkLFooXoctMhGX8",
+      "txId": "7f2a857b09f910dfcec2f8fc37dde4ba1e4b2cfbc8e56142541a535d31915a73"
+    },
+    {
+      "timestamp": "2026-01-28T12:42:21.293Z",
+      "type": "withdrawal-fee-feature",
+      "oldFactoryImpl": "TYjkijP3RRzNvKZBZabsepLUxmECfPvn8t",
+      "newFactoryImpl": "TFxwrgDZKK1JrVRkc4EgheD9BmMW3BzUN6",
+      "oldPayTheFlyProImpl": "TCMgdatWwpVyZV6BTgnTkLFooXoctMhGX8",
+      "newPayTheFlyProImpl": "TLW6oyEcwVasc5tQx28bwXTGey81Z6anJm",
+      "factoryUpgradeTxId": "2ef6c115f50fae3e9f9caec8bf51223b93a5f827c5dd4f746eeffbdb560b10f0",
+      "beaconUpgradeTxId": "8b0be1a02c27683104587c18ee29d524f8cd3628013e94d76704f94e06fd7caa"
+    },
+    {
+      "timestamp": "2026-01-28T12:48:18.181Z",
+      "type": "withdrawal-fee-feature",
+      "oldFactoryImpl": "TFxwrgDZKK1JrVRkc4EgheD9BmMW3BzUN6",
+      "newFactoryImpl": "TD7Q9jTNmGGwDjbYRxcZrnXfgLHCAnxza6",
+      "oldPayTheFlyProImpl": "TLW6oyEcwVasc5tQx28bwXTGey81Z6anJm",
+      "newPayTheFlyProImpl": "TWU98Gdd9PPQGGoGYsMRXtnZCd3Nn6E2HV",
+      "factoryUpgradeTxId": "81c3c4167323829b1cd8d924f144ac540d574c048e42aa519e86efc19d8b1f61",
+      "beaconUpgradeTxId": "12a91a3354ec963d1717c83300fa76ccf3cff0454722d980b09ba49a2d163c5c"
+    }
+  ]
 }

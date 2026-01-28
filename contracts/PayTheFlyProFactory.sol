@@ -33,6 +33,10 @@ contract PayTheFlyProFactory is IPayTheFlyProFactory, UUPSUpgradeable, Ownable2S
     /// @notice Mapping to check if project ID exists
     mapping(string => bool) private _projectExists;
 
+    /// @notice Withdrawal fee in native token (wei)
+    /// @dev Added in upgrade - must be at end of storage to preserve slot layout
+    uint256 private _withdrawalFee;
+
     // ============ Constructor ============
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -81,6 +85,11 @@ contract PayTheFlyProFactory is IPayTheFlyProFactory, UUPSUpgradeable, Ownable2S
     /// @inheritdoc IPayTheFlyProFactory
     function feeRate() external view override returns (uint256) {
         return _feeRate;
+    }
+
+    /// @inheritdoc IPayTheFlyProFactory
+    function withdrawalFee() external view override returns (uint256) {
+        return _withdrawalFee;
     }
 
     /// @inheritdoc IPayTheFlyProFactory
@@ -154,6 +163,14 @@ contract PayTheFlyProFactory is IPayTheFlyProFactory, UUPSUpgradeable, Ownable2S
         _feeRate = newFeeRate;
 
         emit FeeRateUpdated(oldRate, newFeeRate);
+    }
+
+    /// @inheritdoc IPayTheFlyProFactory
+    function setWithdrawalFee(uint256 newWithdrawalFee) external override onlyOwner {
+        uint256 oldFee = _withdrawalFee;
+        _withdrawalFee = newWithdrawalFee;
+
+        emit WithdrawalFeeUpdated(oldFee, newWithdrawalFee);
     }
 
     /// @inheritdoc IPayTheFlyProFactory

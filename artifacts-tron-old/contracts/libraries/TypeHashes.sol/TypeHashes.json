@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "TypeHashes",
+  "sourceName": "contracts/libraries/TypeHashes.sol",
+  "abi": [],
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea26474726f6e58221220795745e36a53a6a71ec18b9e0d4eb183924f6ddf28046d288ce750198c5aebbc64736f6c63430008180033",
+  "deployedBytecode": "0x600080fdfea26474726f6e58221220795745e36a53a6a71ec18b9e0d4eb183924f6ddf28046d288ce750198c5aebbc64736f6c63430008180033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

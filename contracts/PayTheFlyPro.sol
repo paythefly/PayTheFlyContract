@@ -321,12 +321,17 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
     function withdraw(
         WithdrawalRequest calldata request,
         bytes calldata signature
-    ) external override whenNotPaused nonReentrant {
+    ) external payable override whenNotPaused nonReentrant {
         // User must match msg.sender to prevent MEV front-running
         if (request.user != msg.sender) revert InvalidAddress();
         _validateSerialNo(request.serialNo);
         if (block.timestamp > request.deadline) revert ExpiredDeadline();
         if (request.amount == 0) revert InvalidAmount();
+
+        // Check and collect withdrawal fee
+        IPayTheFlyProFactory factory = IPayTheFlyProFactory(_factory);
+        uint256 withdrawalFee = factory.withdrawalFee();
+        if (msg.value < withdrawalFee) revert InsufficientWithdrawalFee();
 
         // Verify signature (consistent with EulerPay format)
         bytes32 structHash = keccak256(abi.encode(
@@ -347,6 +352,20 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
         if (_withdrawalBalances[request.token] < request.amount) revert InsufficientBalance();
         _withdrawalBalances[request.token] -= request.amount;
 
+        // Transfer withdrawal fee to feeVault
+        if (withdrawalFee > 0) {
+            address feeVault = factory.feeVault();
+            (bool feeSuccess, ) = feeVault.call{value: withdrawalFee}("");
+            if (!feeSuccess) revert Errors.TransferFailed();
+        }
+
+        // Refund excess fee payment
+        uint256 excess = msg.value - withdrawalFee;
+        if (excess > 0) {
+            (bool refundSuccess, ) = msg.sender.call{value: excess}("");
+            if (!refundSuccess) revert Errors.TransferFailed();
+        }
+
         // Transfer funds
         if (request.token == address(0)) {
             // ETH transfer
@@ -357,7 +376,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             SafeERC20Universal.safeTransfer(IERC20(request.token), msg.sender, request.amount);
         }
 
-        emit PayTheFlyTransaction(_projectId, request.token, msg.sender, request.amount, 0, request.serialNo, TxType.WITHDRAWAL);
+        emit PayTheFlyTransaction(_projectId, request.token, msg.sender, request.amount, withdrawalFee, request.serialNo, TxType.WITHDRAWAL);
     }
 
     // ============ Admin Functions (No Multi-Sig) ============

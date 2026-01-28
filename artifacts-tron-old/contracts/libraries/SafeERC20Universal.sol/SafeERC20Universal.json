@@ -1,0 +1,43 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "SafeERC20Universal",
+  "sourceName": "contracts/libraries/SafeERC20Universal.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "SafeERC20UniversalFailedOperation",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "expected",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "received",
+          "type": "uint256"
+        }
+      ],
+      "name": "SafeERC20UniversalInsufficientReceived",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea26474726f6e58221220588b40fe19c1b103be85d9a8038cce8fb2697a87fd8931937ed48c9e5babc90864736f6c63430008180033",
+  "deployedBytecode": "0x600080fdfea26474726f6e58221220588b40fe19c1b103be85d9a8038cce8fb2697a87fd8931937ed48c9e5babc90864736f6c63430008180033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -179,6 +179,7 @@ interface IPayTheFlyPro {
     error ThresholdNotReached();
     error InvalidProposalDuration();
     error NameTooLong();
+    error InsufficientWithdrawalFee();
 
     // ============ View Functions ============
 
@@ -282,13 +283,14 @@ interface IPayTheFlyPro {
 
     /**
      * @notice Withdraw with signature verification (ETH or ERC20)
+     * @dev Requires msg.value >= factory.withdrawalFee() as withdrawal fee (native token)
      * @param request Withdrawal request details (user must match msg.sender)
      * @param signature Signer's EIP-712 signature
      */
     function withdraw(
         WithdrawalRequest calldata request,
         bytes calldata signature
-    ) external;
+    ) external payable;
 
     // ============ Admin Functions (No Multi-Sig) ============
 
