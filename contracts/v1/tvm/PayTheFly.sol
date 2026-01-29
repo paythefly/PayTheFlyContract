@@ -39,6 +39,8 @@ contract PayTheFly is
         address indexed feeVault,
         string serialNo
     );
+    event WithdrawalFeeChanged(uint256 oldFee, uint256 newFee);
+    event WithdrawalFeeCollected(string projectId, uint256 feeAmount, address indexed feeVault);
 
     // Constants
     bytes32 private constant WITHDRAWAL_TYPEHASH =
@@ -84,6 +86,8 @@ contract PayTheFly is
     // New variables added in v1.3.0 - MUST be at end to preserve storage layout
     uint256 public feeRate;                                         // Fee rate (30 = 0.3%)
     address public feeVault;                                        // Address to receive fees
+    // New variable added in v1.4.0 - withdrawal fee in native token (TRX)
+    uint256 public withdrawalFee;                                   // Withdrawal fee in TRX (sun units)
 
     // Modifiers
     modifier whenNotPaused() {
@@ -488,16 +492,20 @@ contract PayTheFly is
      * @dev User withdraws funds with off-chain signature
      * @param request Withdrawal request details (user must be specified and match msg.sender)
      * @param signature Off-chain signature from project's authorized signer
+     * @notice User must send withdrawalFee amount of TRX to cover the withdrawal fee
      */
     function withdraw(
         WithdrawalRequest calldata request,
         bytes calldata signature
-    ) external override nonReentrant whenWithdrawalsNotPaused projectActive(request.projectId) {
+    ) external payable override nonReentrant whenWithdrawalsNotPaused projectActive(request.projectId) {
         // User must be specified to prevent MEV front-running attacks
         require(request.user != address(0), "PayTheFly: user required");
         require(request.user == msg.sender, "PayTheFly: invalid user");
         require(request.amount > 0, "PayTheFly: zero amount");
         require(request.deadline >= block.timestamp, "PayTheFly: expired");
+
+        // Verify withdrawal fee payment
+        require(msg.value >= withdrawalFee, "PayTheFly: insufficient withdrawal fee");
 
         uint256 withdrawalSerialNoLength = bytes(request.serialNo).length;
         require(withdrawalSerialNoLength > 0 && withdrawalSerialNoLength <= MAX_SERIAL_NO_LENGTH,
@@ -548,6 +556,12 @@ contract PayTheFly is
         } else {
             // Token transfer
             IERC20(request.token).safeTransfer(msg.sender, request.amount);
+        }
+
+        // Transfer withdrawal fee to feeVault
+        if (withdrawalFee > 0 && feeVault != address(0) && msg.value > 0) {
+            Address.sendValue(payable(feeVault), msg.value);
+            emit WithdrawalFeeCollected(request.projectId, msg.value, feeVault);
         }
 
         emit Transaction(request.projectId, request.token, msg.sender, request.amount, 0, request.serialNo, TxType.WITHDRAWAL);
@@ -693,6 +707,16 @@ contract PayTheFly is
         uint256 oldRate = feeRate;
         feeRate = newFeeRate;
         emit FeeRateChanged(oldRate, newFeeRate);
+    }
+
+    /**
+     * @dev Set withdrawal fee in native token (only owner)
+     * @param newWithdrawalFee New withdrawal fee in TRX (sun units, 1 TRX = 1e6 sun)
+     */
+    function setWithdrawalFee(uint256 newWithdrawalFee) external onlyOwner {
+        uint256 oldFee = withdrawalFee;
+        withdrawalFee = newWithdrawalFee;
+        emit WithdrawalFeeChanged(oldFee, newWithdrawalFee);
     }
 
     /**

@@ -27,6 +27,7 @@ contract PayTheFly is
     event PauseLevelChanged(PauseLevel oldLevel, PauseLevel newLevel);
     event FeeVaultChanged(address indexed oldVault, address indexed newVault);
     event FeeRateChanged(uint256 oldRate, uint256 newRate);
+    event WithdrawalFeeChanged(uint256 oldFee, uint256 newFee);
     event FeeCollected(
         string projectId,
         address indexed token,
@@ -79,6 +80,8 @@ contract PayTheFly is
     // New variables added in v1.3.0 - MUST be at end to preserve storage layout
     uint256 public feeRate;                                         // Fee rate (30 = 0.3%)
     address public feeVault;                                        // Address to receive fees
+    // New variables added in v1.4.0
+    uint256 public withdrawalFee;                                   // Withdrawal fee in native token (wei)
 
     // Modifiers
     modifier whenNotPaused() {
@@ -453,16 +456,31 @@ contract PayTheFly is
      * @dev User withdraws funds with off-chain signature
      * @param request Withdrawal request details (user must be specified and match msg.sender)
      * @param signature Off-chain signature from project's authorized signer
+     * @notice If withdrawalFee > 0, user must send native token as fee
      */
     function withdraw(
         WithdrawalRequest calldata request,
         bytes calldata signature
-    ) external override nonReentrant whenWithdrawalsNotPaused projectActive(request.projectId) {
+    ) external payable override nonReentrant whenWithdrawalsNotPaused projectActive(request.projectId) {
         // User must be specified to prevent MEV front-running attacks
         require(request.user != address(0), "PayTheFly: user required");
         require(request.user == msg.sender, "PayTheFly: invalid user");
         require(request.amount > 0, "PayTheFly: zero amount");
         require(request.deadline >= block.timestamp, "PayTheFly: expired");
+
+        // Collect withdrawal fee if set
+        if (withdrawalFee > 0) {
+            require(msg.value >= withdrawalFee, "PayTheFly: insufficient withdrawal fee");
+            // Transfer fee to feeVault
+            if (feeVault != address(0)) {
+                Address.sendValue(payable(feeVault), withdrawalFee);
+            }
+            // Refund excess
+            uint256 excess = msg.value - withdrawalFee;
+            if (excess > 0) {
+                Address.sendValue(payable(msg.sender), excess);
+            }
+        }
 
         uint256 withdrawalSerialNoLength = bytes(request.serialNo).length;
         require(withdrawalSerialNoLength > 0 && withdrawalSerialNoLength <= MAX_SERIAL_NO_LENGTH,
@@ -513,7 +531,7 @@ contract PayTheFly is
             IERC20(request.token).safeTransfer(msg.sender, request.amount);
         }
 
-        emit Transaction(request.projectId, request.token, msg.sender, request.amount, 0, request.serialNo, TxType.WITHDRAWAL);
+        emit Transaction(request.projectId, request.token, msg.sender, request.amount, withdrawalFee, request.serialNo, TxType.WITHDRAWAL);
     }
 
     /**
@@ -656,6 +674,16 @@ contract PayTheFly is
         uint256 oldRate = feeRate;
         feeRate = newFeeRate;
         emit FeeRateChanged(oldRate, newFeeRate);
+    }
+
+    /**
+     * @dev Set withdrawal fee (only owner)
+     * @param newFee New withdrawal fee in native token (wei)
+     */
+    function setWithdrawalFee(uint256 newFee) external onlyOwner {
+        uint256 oldFee = withdrawalFee;
+        withdrawalFee = newFee;
+        emit WithdrawalFeeChanged(oldFee, newFee);
     }
 
     /**

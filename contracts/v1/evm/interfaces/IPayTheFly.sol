@@ -108,7 +108,7 @@ interface IPayTheFly {
     function withdraw(
         WithdrawalRequest calldata request,
         bytes calldata signature
-    ) external;
+    ) external payable;
 
     function adminWithdraw(
         string calldata projectId,
