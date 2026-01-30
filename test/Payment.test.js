@@ -88,7 +88,7 @@ describe("Payment", function () {
         project = await ethers.getContractAt("PayTheFlyPro", projectAddress);
 
         // Deploy mock ERC20
-        const MockERC20 = await ethers.getContractFactory("MockERC20");
+        const MockERC20 = await ethers.getContractFactory("contracts/mock/MockERC20.sol:MockERC20");
         mockToken = await MockERC20.deploy("Test Token", "TEST", 18);
         await mockToken.waitForDeployment();
 

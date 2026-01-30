@@ -280,86 +280,12 @@ contract PayTheFly is
     }
 
     /**
-     * @dev Pay with ETH or ERC20 token
-     * @param projectId Project identifier
-     * @param token Token address (address(0) for ETH)
-     * @param amount Amount to pay (must match msg.value for ETH, must match actual received amount for tokens)
-     * @param serialNo Payment serial number (unique per project)
-     */
-    function pay(
-        string calldata projectId,
-        address token,
-        uint256 amount,
-        string calldata serialNo
-    ) external payable override nonReentrant whenDepositsNotPaused projectActive(projectId)
-        validStringLength(serialNo, MAX_SERIAL_NO_LENGTH)
-    {
-        require(!usedPaymentSerialNos[projectId][serialNo], "PayTheFly: payment serial no already used");
-
-        uint256 paymentAmount;
-
-        if (token == address(0)) {
-            // ETH payment - must match the specified amount exactly
-            require(amount > 0, "PayTheFly: zero amount");
-            require(msg.value == amount, "PayTheFly: incorrect ETH amount");
-            paymentAmount = amount;
-        } else {
-            // Token payment
-            require(msg.value == 0, "PayTheFly: ETH not accepted for token payment");
-            require(amount > 0, "PayTheFly: zero amount");
-
-            // Record balance before transfer
-            uint256 balanceBefore = IERC20(token).balanceOf(address(this));
-
-            // Execute transfer
-            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-
-            // Calculate actual received amount
-            uint256 balanceAfter = IERC20(token).balanceOf(address(this));
-            uint256 received = balanceAfter - balanceBefore;
-
-            // Ensure received amount matches the specified amount exactly
-            require(received == amount, "PayTheFly: incorrect token amount received");
-
-            paymentAmount = amount;
-        }
-
-        usedPaymentSerialNos[projectId][serialNo] = true;
-
-        // Calculate and collect fee
-        uint256 feeAmount = 0;
-        uint256 netAmount = paymentAmount;
-
-        if (feeRate > 0 && feeVault != address(0)) {
-            feeAmount = (paymentAmount * feeRate) / FEE_DENOMINATOR;
-            netAmount = paymentAmount - feeAmount;
-
-            // Transfer fee to feeVault
-            if (feeAmount > 0) {
-                if (token == address(0)) {
-                    // ETH fee transfer
-                    Address.sendValue(payable(feeVault), feeAmount);
-                } else {
-                    // Token fee transfer
-                    IERC20(token).safeTransfer(feeVault, feeAmount);
-                }
-                emit FeeCollected(projectId, token, feeAmount, feeVault, serialNo);
-            }
-        }
-
-        ProjectBalance storage balance = projectBalances[projectId][token];
-        balance.paymentBalance += netAmount;
-
-        emit Transaction(projectId, token, msg.sender, paymentAmount, feeAmount, serialNo, TxType.PAYMENT);
-    }
-
-    /**
      * @dev Pay with ETH or ERC20 token using signed request (prevents parameter tampering)
      * @param request Payment request details
      * @param signature Off-chain signature from project's authorized signer
      * @notice Anyone can pay with a valid signature, signature ensures parameters cannot be tampered
      */
-    function payWithSign(
+    function pay(
         PaymentRequest calldata request,
         bytes calldata signature
     ) external payable override nonReentrant whenDepositsNotPaused projectActive(request.projectId) {

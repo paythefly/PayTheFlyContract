@@ -198,7 +198,7 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             params: p.params,
             proposer: p.proposer,
             deadline: p.deadline,
-            confirmCount: p.confirmCount,
+            confirmCount: _getActiveConfirmCount(proposalId),
             executed: p.executed,
             cancelled: p.cancelled,
             confirmedBy: _getConfirmedBy(proposalId)
@@ -228,18 +228,18 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
 
         for (uint256 i = 0; i < count; i++) {
             // Newest first: proposalId = total - offset - i - 1
-            uint256 proposalId = total - offset - i - 1;
-            DataTypes.Proposal storage p = _proposals[proposalId];
+            uint256 pId = total - offset - i - 1;
+            DataTypes.Proposal storage p = _proposals[pId];
             proposals[i] = ProposalInfo({
                 id: p.id,
                 opType: OperationType(uint8(p.opType)),
                 params: p.params,
                 proposer: p.proposer,
                 deadline: p.deadline,
-                confirmCount: p.confirmCount,
+                confirmCount: _getActiveConfirmCount(pId),
                 executed: p.executed,
                 cancelled: p.cancelled,
-                confirmedBy: _getConfirmedBy(proposalId)
+                confirmedBy: _getConfirmedBy(pId)
             });
         }
     }
@@ -494,7 +494,8 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
         if (p.executed) revert ProposalAlreadyExecuted();
         if (p.cancelled) revert ProposalCancelledError();
         if (block.timestamp > p.deadline) revert ProposalExpired();
-        if (p.confirmCount < _threshold) revert ThresholdNotReached();
+        // Use active confirm count to exclude removed admins' confirmations
+        if (_getActiveConfirmCount(proposalId) < _threshold) revert ThresholdNotReached();
 
         p.executed = true;
         _pendingProposalCount--;
@@ -526,13 +527,26 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
         return (amount * rate) / DataTypes.BASIS_POINTS;
     }
 
+    /// @dev Counts confirmations from current active admins only
+    /// @notice This prevents removed admins' confirmations from being counted
+    function _getActiveConfirmCount(uint256 proposalId) internal view returns (uint256) {
+        uint256 count = 0;
+        for (uint256 i = 0; i < _admins.length; i++) {
+            if (_confirmations[proposalId][_admins[i]]) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     /// @dev Returns list of admins who confirmed a proposal
     function _getConfirmedBy(uint256 proposalId) internal view returns (address[] memory) {
-        DataTypes.Proposal storage p = _proposals[proposalId];
-        address[] memory confirmed = new address[](p.confirmCount);
+        // Count actual confirmations from current admins
+        uint256 activeCount = _getActiveConfirmCount(proposalId);
+        address[] memory confirmed = new address[](activeCount);
         uint256 idx = 0;
 
-        for (uint256 i = 0; i < _admins.length && idx < p.confirmCount; i++) {
+        for (uint256 i = 0; i < _admins.length && idx < activeCount; i++) {
             if (_confirmations[proposalId][_admins[i]]) {
                 confirmed[idx++] = _admins[i];
             }

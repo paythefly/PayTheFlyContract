@@ -94,13 +94,6 @@ interface IPayTheFly {
     ) external;
 
     function pay(
-        string calldata projectId,
-        address token,
-        uint256 amount,
-        string calldata serialNo
-    ) external payable;
-
-    function payWithSign(
         PaymentRequest calldata request,
         bytes calldata signature
     ) external payable;

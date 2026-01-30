@@ -593,6 +593,100 @@ describe("MultiSig", function () {
         });
     });
 
+    describe("Removed Admin Confirmation Fix", function () {
+        it("Should not count removed admin's confirmation when executing proposal", async function () {
+            const deadline = (await time.latest()) + 86400;
+
+            // Step 1: Add admin2 and admin3
+            const addAdmin2Params = ethers.AbiCoder.defaultAbiCoder().encode(["address"], [admin2.address]);
+            await project.connect(admin1).createProposal(OperationType.AddAdmin, addAdmin2Params, deadline);
+            await project.connect(admin1).executeProposal(0);
+
+            const addAdmin3Params = ethers.AbiCoder.defaultAbiCoder().encode(["address"], [admin3.address]);
+            await project.connect(admin1).createProposal(OperationType.AddAdmin, addAdmin3Params, deadline);
+            await project.connect(admin1).executeProposal(1);
+
+            // Step 2: Set threshold to 2
+            const thresholdParams = ethers.AbiCoder.defaultAbiCoder().encode(["uint256"], [2]);
+            await project.connect(admin1).createProposal(OperationType.ChangeThreshold, thresholdParams, deadline);
+            await project.connect(admin2).confirmProposal(2);
+            await project.connect(admin1).executeProposal(2);
+
+            expect(await project.getThreshold()).to.equal(2);
+
+            // Step 3: Create a Pause proposal - admin1 confirms (auto), admin2 confirms
+            await project.connect(admin1).createProposal(OperationType.Pause, "0x", deadline);
+            const pauseProposalId = 3;
+            await project.connect(admin2).confirmProposal(pauseProposalId);
+
+            // At this point, confirmCount = 2 (admin1 + admin2)
+            let proposal = await project.getProposal(pauseProposalId);
+            expect(proposal.confirmCount).to.equal(2);
+
+            // Step 4: Remove admin2
+            const removeAdmin2Params = ethers.AbiCoder.defaultAbiCoder().encode(["address"], [admin2.address]);
+            await project.connect(admin1).createProposal(OperationType.RemoveAdmin, removeAdmin2Params, deadline);
+            await project.connect(admin3).confirmProposal(4);
+            await project.connect(admin1).executeProposal(4);
+
+            expect(await project.isAdmin(admin2.address)).to.be.false;
+
+            // Step 5: Check the Pause proposal's active confirm count
+            // The fix ensures only current admins' confirmations are counted
+            proposal = await project.getProposal(pauseProposalId);
+            // After fix: confirmCount should be 1 (only admin1, admin2 is removed)
+            expect(proposal.confirmCount).to.equal(1);
+
+            // Step 6: Attempting to execute should fail (1 < threshold of 2)
+            await expect(
+                project.connect(admin1).executeProposal(pauseProposalId)
+            ).to.be.revertedWithCustomError(project, "ThresholdNotReached");
+
+            // Step 7: admin3 confirms, now it should have 2 confirmations
+            await project.connect(admin3).confirmProposal(pauseProposalId);
+
+            proposal = await project.getProposal(pauseProposalId);
+            expect(proposal.confirmCount).to.equal(2);
+
+            // Step 8: Now execution should succeed
+            await expect(project.connect(admin1).executeProposal(pauseProposalId))
+                .to.emit(project, "ProposalExecuted")
+                .withArgs(pauseProposalId);
+
+            const info = await project.getProjectInfo();
+            expect(info.paused).to.be.true;
+        });
+
+        it("Should return correct confirmedBy list excluding removed admin", async function () {
+            const deadline = (await time.latest()) + 86400;
+
+            // Add admin2
+            const addAdmin2Params = ethers.AbiCoder.defaultAbiCoder().encode(["address"], [admin2.address]);
+            await project.connect(admin1).createProposal(OperationType.AddAdmin, addAdmin2Params, deadline);
+            await project.connect(admin1).executeProposal(0);
+
+            // Create Pause proposal - admin1 and admin2 both confirm
+            await project.connect(admin1).createProposal(OperationType.Pause, "0x", deadline);
+            await project.connect(admin2).confirmProposal(1);
+
+            let proposal = await project.getProposal(1);
+            expect(proposal.confirmedBy).to.include(admin1.address);
+            expect(proposal.confirmedBy).to.include(admin2.address);
+            expect(proposal.confirmedBy.length).to.equal(2);
+
+            // Remove admin2
+            const removeParams = ethers.AbiCoder.defaultAbiCoder().encode(["address"], [admin2.address]);
+            await project.connect(admin1).createProposal(OperationType.RemoveAdmin, removeParams, deadline);
+            await project.connect(admin1).executeProposal(2);
+
+            // Check confirmedBy no longer includes admin2
+            proposal = await project.getProposal(1);
+            expect(proposal.confirmedBy).to.include(admin1.address);
+            expect(proposal.confirmedBy).to.not.include(admin2.address);
+            expect(proposal.confirmedBy.length).to.equal(1);
+        });
+    });
+
     describe("Admin Functions (No Multi-Sig)", function () {
         it("Should set name without multi-sig", async function () {
             const newName = "Updated Project Name";

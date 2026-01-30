@@ -20,7 +20,7 @@ describe("SafeERC20Universal", function () {
         await harness.waitForDeployment();
 
         // Deploy normal ERC20 token
-        const MockERC20 = await ethers.getContractFactory("MockERC20");
+        const MockERC20 = await ethers.getContractFactory("contracts/mock/MockERC20.sol:MockERC20");
         normalToken = await MockERC20.deploy("Normal Token", "NORM", 18);
         await normalToken.waitForDeployment();
 
@@ -221,7 +221,7 @@ describe("SafeERC20Universal", function () {
 
         it("Should revert on failed transferFrom (insufficient allowance)", async function () {
             // Create new token without approval
-            const MockERC20 = await ethers.getContractFactory("MockERC20");
+            const MockERC20 = await ethers.getContractFactory("contracts/mock/MockERC20.sol:MockERC20");
             const newToken = await MockERC20.deploy("New Token", "NEW", 18);
             await newToken.mint(owner.address, INITIAL_SUPPLY);
             // No approval granted
