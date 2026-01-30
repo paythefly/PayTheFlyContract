@@ -161,8 +161,9 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
 
     /// @inheritdoc IPayTheFlyPro
     function getBalancesBatch(address[] calldata tokens) external view override returns (TokenBalance[] memory) {
-        TokenBalance[] memory balances = new TokenBalance[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; i++) {
+        uint256 len = tokens.length;
+        TokenBalance[] memory balances = new TokenBalance[](len);
+        for (uint256 i = 0; i < len; i++) {
             balances[i] = TokenBalance({
                 paymentBalance: _paymentBalances[tokens[i]],
                 withdrawalBalance: _withdrawalBalances[tokens[i]]
@@ -192,16 +193,18 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
         if (p.id == 0 && proposalId != 0) revert ProposalNotFound();
         if (proposalId == 0 && p.proposer == address(0)) revert ProposalNotFound();
 
+        (uint256 confirmCount, address[] memory confirmedBy) = _getConfirmationData(proposalId);
+
         return ProposalInfo({
             id: p.id,
             opType: OperationType(uint8(p.opType)),
             params: p.params,
             proposer: p.proposer,
             deadline: p.deadline,
-            confirmCount: _getActiveConfirmCount(proposalId),
+            confirmCount: confirmCount,
             executed: p.executed,
             cancelled: p.cancelled,
-            confirmedBy: _getConfirmedBy(proposalId)
+            confirmedBy: confirmedBy
         });
     }
 
@@ -230,16 +233,17 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
             // Newest first: proposalId = total - offset - i - 1
             uint256 pId = total - offset - i - 1;
             DataTypes.Proposal storage p = _proposals[pId];
+            (uint256 confirmCount, address[] memory confirmedBy) = _getConfirmationData(pId);
             proposals[i] = ProposalInfo({
                 id: p.id,
                 opType: OperationType(uint8(p.opType)),
                 params: p.params,
                 proposer: p.proposer,
                 deadline: p.deadline,
-                confirmCount: _getActiveConfirmCount(pId),
+                confirmCount: confirmCount,
                 executed: p.executed,
                 cancelled: p.cancelled,
-                confirmedBy: _getConfirmedBy(pId)
+                confirmedBy: confirmedBy
             });
         }
     }
@@ -527,32 +531,43 @@ contract PayTheFlyPro is IPayTheFlyPro, Initializable, EIP712Upgradeable, Reentr
         return (amount * rate) / DataTypes.BASIS_POINTS;
     }
 
+    /// @dev Returns confirmation count and list of admins who confirmed a proposal
+    /// @notice Gas optimized: single traversal for both count and list
+    function _getConfirmationData(uint256 proposalId) internal view returns (uint256 count, address[] memory confirmedBy) {
+        // Cache storage array in memory for gas optimization
+        address[] memory admins = _admins;
+        uint256 len = admins.length;
+
+        // First pass: count confirmations
+        count = 0;
+        for (uint256 i = 0; i < len; i++) {
+            if (_confirmations[proposalId][admins[i]]) {
+                count++;
+            }
+        }
+
+        // Second pass: collect confirmed addresses
+        confirmedBy = new address[](count);
+        uint256 idx = 0;
+        for (uint256 i = 0; i < len && idx < count; i++) {
+            if (_confirmations[proposalId][admins[i]]) {
+                confirmedBy[idx++] = admins[i];
+            }
+        }
+    }
+
     /// @dev Counts confirmations from current active admins only
     /// @notice This prevents removed admins' confirmations from being counted
     function _getActiveConfirmCount(uint256 proposalId) internal view returns (uint256) {
+        address[] memory admins = _admins;
+        uint256 len = admins.length;
         uint256 count = 0;
-        for (uint256 i = 0; i < _admins.length; i++) {
-            if (_confirmations[proposalId][_admins[i]]) {
+        for (uint256 i = 0; i < len; i++) {
+            if (_confirmations[proposalId][admins[i]]) {
                 count++;
             }
         }
         return count;
-    }
-
-    /// @dev Returns list of admins who confirmed a proposal
-    function _getConfirmedBy(uint256 proposalId) internal view returns (address[] memory) {
-        // Count actual confirmations from current admins
-        uint256 activeCount = _getActiveConfirmCount(proposalId);
-        address[] memory confirmed = new address[](activeCount);
-        uint256 idx = 0;
-
-        for (uint256 i = 0; i < _admins.length && idx < activeCount; i++) {
-            if (_confirmations[proposalId][_admins[i]]) {
-                confirmed[idx++] = _admins[i];
-            }
-        }
-
-        return confirmed;
     }
 
     /// @dev Routes proposal execution to the appropriate handler
