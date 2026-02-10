@@ -278,7 +278,7 @@ async function main() {
             ...(deployment.upgrades || []),
             {
                 timestamp: new Date().toISOString(),
-                type: "withdrawal-fee-feature",
+                type: process.env.UPGRADE_TYPE || "security-fix-removed-admin-confirmation",
                 oldFactoryImpl: deployment.contracts.factoryImpl,
                 newFactoryImpl: newFactoryImplAddress,
                 oldPayTheFlyProImpl: deployment.contracts.payTheFlyProImpl,

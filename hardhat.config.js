@@ -29,6 +29,7 @@ const BSCSCAN_API_KEY = vars.get("BSCSCAN_API_KEY", "");
 const QUICKNODE_BSC_URL = vars.get("QUICKNODE_BSC_URL", "https://bsc-dataseed.binance.org");
 const QUICKNODE_BSC_TESTNET_URL = vars.get("QUICKNODE_BSC_TESTNET_URL", "https://data-seed-prebsc-1-s1.binance.org:8545");
 const SEPOLIA_RPC_URL = vars.get("SEPOLIA_RPC_URL", "https://ethereum-sepolia.publicnode.com");
+const ETH_MAINNET_RPC_URL = vars.get("ETH_MAINNET_RPC_URL", "https://eth.llamarpc.com");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -56,27 +57,16 @@ module.exports = {
       // }
     }
   },
-  sourcify: { 
-    enabled: false, // 启用Sourcify
+  sourcify: {
+    enabled: true,
   },
   etherscan: {
     apiKey: {
       mainnet: ETHERSCAN_API_KEY,
       sepolia: ETHERSCAN_API_KEY,
       bsc: BSCSCAN_API_KEY,
-      bscTestnet: BSCSCAN_API_KEY,
-      mailchatd: ETHERSCAN_API_KEY
-    },
-    customChains: [
-      {
-        network: "mailchatd",
-        chainId: 26000,
-        urls: {
-          apiURL: "https://explorer.forkstar.org/api/v1",
-          browserURL: "https://explorer.forkstar.org"
-        }
-      }
-    ]
+      bscTestnet: BSCSCAN_API_KEY
+    }
   },
   networks: {
     localhost: {
@@ -119,6 +109,13 @@ module.exports = {
       url: SEPOLIA_RPC_URL,
       chainId: 11155111,
       accounts: [DEVELOPMENT_KEY],
+      gas: "auto",
+      gasPrice: "auto"
+    },
+    mainnet: {
+      url: ETH_MAINNET_RPC_URL,
+      chainId: 1,
+      accounts: [PRODUCT_KEY],
       gas: "auto",
       gasPrice: "auto"
     },

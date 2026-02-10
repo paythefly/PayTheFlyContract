@@ -1,0 +1,6 @@
+// ERC1967Proxy constructor args for ETH mainnet
+// constructor(address implementation, bytes memory _data)
+module.exports = [
+  "0xde07B19Bbc4EBa05C569F21aA9Bc87214F5b1D84",  // Factory implementation
+  "0x1794bb3c000000000000000000000000b647e98e40855c9df7fc76281837c3ed0c6b22ef000000000000000000000000831c1b82a8f5d538990759432ea95417f2d19f020000000000000000000000000000000000000000000000000000000000000014"  // initialize(impl, feeVault, feeRate=20)
+];
