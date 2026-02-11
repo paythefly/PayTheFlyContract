@@ -26,3 +26,13 @@ artifacts-tron/
 artifacts-tron-old/
 cache-tron/
 deployments/
+.openzeppelin/
+.vscode/
+TRON_HARDHAT_GUIDE.md
+hardhat.config.js
+ignition/
+logs/
+package-lock.json
+package.json
+scripts/
+test/
